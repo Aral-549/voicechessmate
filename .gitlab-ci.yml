@@ -1,0 +1,27 @@
+image: node:22
+
+cache:
+  paths:
+    - node_modules/
+
+stages:
+  - lint
+  - test
+  - build
+
+lint:
+  stage: lint
+  script:
+    - npx eslint .
+  allow_failure: true
+
+test:
+  stage: test
+  script:
+    - npx tsc --noEmit
+    - npx vitest run
+
+build:
+  stage: build
+  script:
+    - npm run build

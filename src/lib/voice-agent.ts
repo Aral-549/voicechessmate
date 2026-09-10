@@ -36,6 +36,12 @@ export class VoiceAgentManager {
   private eventHandlers: Map<string, EventHandler[]> = new Map();
   private statusHandlers: ((status: VoiceAgentStatus) => void)[] = [];
 
+  // Reconnect support
+  private lastSessionConfig: Record<string, unknown> | null = null;
+  private reconnectAttempts = 0;
+  private readonly maxReconnectAttempts = 3;
+  private intentionalDisconnect = false;
+
   // --- Event System ---
 
   on(eventType: string, handler: EventHandler): void {
@@ -68,7 +74,16 @@ export class VoiceAgentManager {
   // --- Push-to-Talk / Push-to-Listen State ---
 
   setListening(active: boolean): void {
+    const wasListening = this.isListeningActive;
     this.isListeningActive = active;
+
+    // When releasing push-to-talk, send an explicit end-of-turn signal
+    // so the server finalizes speech immediately instead of waiting for silence timeout
+    if (wasListening && !active && this.ws?.readyState === WebSocket.OPEN) {
+      this.sendEvent({ type: 'input.audio_end' });
+      console.log('[VoiceAgent] Sent input.audio_end — turn finalized');
+    }
+
     if (this.status !== 'disconnected' && this.status !== 'connecting' && this.status !== 'error') {
       this.setStatus(active ? 'listening' : 'ready');
     }
@@ -87,6 +102,9 @@ export class VoiceAgentManager {
 
   async connect(sessionConfig: SessionConfig): Promise<void> {
     this.setStatus('connecting');
+    this.lastSessionConfig = sessionConfig as unknown as Record<string, unknown>;
+    this.reconnectAttempts = 0;
+    this.intentionalDisconnect = false;
 
     try {
       // 1. Initialize AudioContext and microphone while user gesture is active
@@ -183,7 +201,22 @@ export class VoiceAgentManager {
 
       this.ws.onclose = (event) => {
         console.log(`[VoiceAgent] WebSocket closed: code=${event.code} reason="${event.reason}"`);
-        if (event.code !== 1000 && event.code !== 1005) {
+
+        // Attempt auto-reconnect on unexpected drops (not user-initiated)
+        if (!this.intentionalDisconnect && event.code !== 1000 && event.code !== 1005) {
+          if (this.reconnectAttempts < this.maxReconnectAttempts && this.lastSessionConfig) {
+            this.reconnectAttempts++;
+            const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts - 1), 8000);
+            console.log(`[VoiceAgent] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+            this.setStatus('connecting');
+            setTimeout(() => {
+              this.connect(this.lastSessionConfig as unknown as SessionConfig).catch(err => {
+                console.error('[VoiceAgent] Reconnect failed:', err);
+                this.setStatus('error');
+              });
+            }, delay);
+            return;
+          }
           this.setStatus('error');
         } else {
           this.setStatus('disconnected');
@@ -312,6 +345,7 @@ export class VoiceAgentManager {
   // --- Disconnect ---
 
   disconnect(): void {
+    this.intentionalDisconnect = true;
     this.cleanup();
     if (this.ws) {
       this.ws.close();

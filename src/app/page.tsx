@@ -32,10 +32,26 @@ export default function Home() {
   const partialTranscriptRef = useRef<string>('');
   const agentTextRef = useRef<string>('');
 
-  // Initialize game state
+  // Initialize game state — restore from localStorage if available
   useEffect(() => {
+    try {
+      const savedFen = localStorage.getItem('voicechessmate_fen');
+      if (savedFen) {
+        engineRef.current.reset(savedFen);
+        console.log('[Persistence] Restored game from localStorage');
+      }
+    } catch { /* localStorage unavailable */ }
     setGameState(engineRef.current.getGameState());
   }, []);
+
+  // Persist game state to localStorage on every change
+  useEffect(() => {
+    if (gameState?.fen) {
+      try {
+        localStorage.setItem('voicechessmate_fen', gameState.fen);
+      } catch { /* localStorage unavailable */ }
+    }
+  }, [gameState?.fen]);
 
   // --- Transcript Helpers ---
   const addTranscriptEntry = useCallback((
@@ -217,7 +233,23 @@ export default function Home() {
     } catch (err) {
       console.error('Failed to start:', err);
       setIsStarted(false);
-      setError(err instanceof Error ? err.message : 'Failed to connect');
+
+      // Provide user-friendly error messages for common failures
+      let message = 'Failed to connect';
+      if (err instanceof Error) {
+        if (err.name === 'NotAllowedError' || err.message.includes('Permission denied')) {
+          message = 'Microphone access was denied. Please allow microphone permission in your browser settings and try again.';
+        } else if (err.name === 'NotFoundError') {
+          message = 'No microphone found. Please connect a microphone and try again.';
+        } else if (err.message.includes('AudioWorklet') || err.message.includes('not supported')) {
+          message = 'Your browser does not fully support audio capture. Please try Chrome or Edge.';
+        } else if (err.message.includes('Token') || err.message.includes('token')) {
+          message = 'Failed to authenticate with the voice service. Check your API key in .env.local.';
+        } else {
+          message = err.message;
+        }
+      }
+      setError(message);
       setAgentStatus('error');
     }
   }, [addTranscriptEntry]);
@@ -249,6 +281,7 @@ export default function Home() {
     engineRef.current.reset();
     setGameState(engineRef.current.getGameState());
     setTranscript([]);
+    try { localStorage.removeItem('voicechessmate_fen'); } catch { /* ignore */ }
   }, []);
 
   // --- Describe Board (instant, with voice playback for blind accessibility) ---
