@@ -225,10 +225,11 @@ async function buildHackdayPresentation() {
       "Players simply hold 'J' (push-to-talk) and speak naturally:\n" +
       "  • 'Knight to f3' or 'Pawn to Eva 4'\n" +
       "  • 'Describe my threats' or 'What is my best development?'\n\n" +
-      "The Voice Agent immediately confirms moves, executes the AI reply, and speaks tactical coaching guidance back with zero screen dependency.",
+      "The Voice Agent immediately confirms moves, executes the AI reply, and speaks tactical coaching guidance back with zero screen dependency.\n\n" +
+      "Live Production App: https://voicechessmate.vercel.app/",
       {
-        x: 1.15, y: 2.85, w: leftW - 0.7, h: 3.3,
-        fontFace: "Arial", fontSize: 13, color: "9AB4A5", lineSpacing: 19
+        x: 1.15, y: 2.85, w: leftW - 0.7, h: 3.4,
+        fontFace: "Arial", fontSize: 12, color: "9AB4A5", lineSpacing: 17
       }
     );
 
@@ -581,6 +582,11 @@ async function buildHackdevengersPresentation() {
     s.addText("An Autonomous, Conversational Voice Chess Companion for 285M Visually Impaired Players", {
       x: 0.8, y: 4.45, w: 11.7, h: 0.45,
       fontFace: "Arial", fontSize: 13.5, color: "8FAFA0", align: "center"
+    });
+
+    s.addText("Live Production App: https://voicechessmate.vercel.app/", {
+      x: 0.8, y: 5.3, w: 11.7, h: 0.4,
+      fontFace: "Arial", fontSize: 13.5, bold: true, color: "3ECF8E", align: "center"
     });
 
     s.addText("Hackdevengers 2.0 Project Submission | Powered by AssemblyAI Voice Agent API", {

@@ -2,6 +2,8 @@
 
 > **Play chess entirely through your voice — no screen, no mouse, no barriers.**
 
+**Live Demo:** [https://voicechessmate.vercel.app/](https://voicechessmate.vercel.app/)
+
 A conversational chess companion powered by [AssemblyAI's Voice Agent API](https://www.assemblyai.com/). Speak your moves naturally, hear the coach respond, and play a full game of chess without ever touching your keyboard or looking at a screen.
 
 ---
@@ -112,7 +114,8 @@ Executes 335 tests across 14 test files covering chess engine mechanics, move no
 
 ## Deployment
 
-Standard Next.js deployment (e.g. Vercel). Set `ASSEMBLYAI_API_KEY` in your environment variables. The `/api/token` endpoint issues ephemeral tokens server-side to prevent client-side credential exposure.
+- **Live Production URL:** [https://voicechessmate.vercel.app/](https://voicechessmate.vercel.app/)
+- **Hosting Platform:** Deployed on Vercel with automatic CI/CD. The `/api/token` endpoint issues ephemeral tokens server-side to prevent client-side AssemblyAI credential exposure. Tested across Chrome and Edge on desktop and mobile.
 
 ---
 
