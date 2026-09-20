@@ -1,30 +1,30 @@
-# VoiceChessmate ♟️
+# VoiceChessmate
 
-> **Play chess entirely through your voice — no screen, no mouse, no problem.**
+> **Play chess entirely through your voice — no screen, no mouse, no barriers.**
 
-A conversational chess companion powered by [AssemblyAI's Voice Agent API](https://www.assemblyai.com/). Speak your moves naturally, hear the coach respond, and play a full game of chess without ever touching your keyboard — or looking at the screen.
+A conversational chess companion powered by [AssemblyAI's Voice Agent API](https://www.assemblyai.com/). Speak your moves naturally, hear the coach respond, and play a full game of chess without ever touching your keyboard or looking at a screen.
 
 ---
 
 ## What it does
 
-You hold **J**, say *"knight to f3"*, and the coach plays, responds, and explains — all in real time. That's it.
+You hold **J**, say *"knight to f3"*, and the coach plays, responds, and explains — all in real time.
 
-Under the hood, your speech hits AssemblyAI's live voice agent, which understands chess context, validates the move against the actual ruleset, plays the best bot reply, and speaks back — with a streaming caption so you can follow along even if audio isn't available.
+Under the hood, speech streams to AssemblyAI's live voice agent, which understands chess context, validates the move against official rules, computes the engine reply, and speaks back with a streaming caption.
 
-It's built for anyone who wants a hands-free chess experience, with accessibility as a first-class feature (not an afterthought).
+Built for anyone seeking a hands-free chess experience, with accessibility as a core architectural requirement.
 
 ---
 
 ## Key features
 
-- 🎙️ **Push-to-talk voice control** — hold J to speak, release to send
-- ♟️ **Real chess engine** — legal move validation, en passant, castling, promotion, all of it
-- 🤖 **AI chess coach** — 4 difficulty levels (Beginner → Master)
-- ⏱️ **Chess clock** — Bullet (1m), Blitz (3m, 5m), Rapid (10m), or casual/untimed
-- 📝 **Live captions** — streaming transcript of what the coach says
-- 🖱️ **Click/drag board** — visual board as a fallback for sighted players
-- ♿ **Accessible by design** — high contrast, font scaling, screen reader support, keyboard shortcuts
+- **Push-to-talk voice control** — hold J to speak, release to send
+- **Deterministic chess engine** — full legal move validation, en passant, castling, promotion
+- **Conversational AI coach** — 4 difficulty levels (Beginner to Master) with tactical explanations
+- **Integrated chess clock** — Bullet (1m), Blitz (3m, 5m), Rapid (10m), or casual/untimed
+- **Streaming live captions** — visual transcript synchronized with spoken audio
+- **Interactive visual board** — fallback interface with drag-and-drop support
+- **Engineered for accessibility** — FIDE/IBCA phonetic notation, spatial stereo earcons, high contrast, font scaling, screen reader ARIA support, and full keyboard navigation
 
 ---
 
@@ -33,14 +33,14 @@ It's built for anyone who wants a hands-free chess experience, with accessibilit
 | Key | Action |
 |-----|--------|
 | `J` (hold) | Speak your move or question |
-| `Esc` | Cancel mic |
+| `Esc` | Cancel voice input |
 | `R` | Repeat last coach message |
-| `D` | Describe the full board |
-| `T` | Hear current threats |
-| `G` | Get a tactical summary |
+| `D` | Describe full board state |
+| `T` | Hear active threats |
+| `G` | Tactical summary |
 | `U` | Undo last move |
 | `B` | Show / hide visual board |
-| `?` | Open keyboard shortcuts reference |
+| `?` | Keyboard shortcuts reference |
 
 ---
 
@@ -49,36 +49,36 @@ It's built for anyone who wants a hands-free chess experience, with accessibilit
 | Layer | Technology |
 |-------|-----------|
 | Framework | Next.js 16 (App Router, Turbopack) |
-| Language | TypeScript (strict) |
-| Voice | AssemblyAI Voice Agent API (WebSocket, PCM16) |
-| Chess | chess.js (move validation & game state) |
-| Audio | Web Audio API — dual AudioContext (speaker + mic) |
+| Language | TypeScript (strict mode) |
+| Voice Agent | AssemblyAI Voice Agent API (WebSocket, PCM16) |
+| Chess Rules | chess.js (move validation and FIDE compliance) |
+| Audio Engine | Web Audio API — dual AudioContext (48kHz playback + 24kHz capture) |
 | Styling | Tailwind CSS |
-| Tests | Vitest — 337 tests, all passing |
+| Test Suite | Vitest — 335 tests across 14 test suites (100% passing) |
 
 ---
 
-## How it works (briefly)
+## Audio architecture
 
-The voice pipeline has two separate `AudioContext` instances:
-- **Speaker context** at the hardware's native sample rate (48kHz) — this prevents Linux/PulseAudio from silently muting playback
-- **Capture context** at 24kHz — this is what AssemblyAI's API expects for speech recognition
+The voice pipeline utilizes two dedicated `AudioContext` instances to ensure cross-platform stability:
+- **Speaker context** at native hardware sample rate (48kHz) — eliminates Linux PulseAudio/PipeWire silent muting issues.
+- **Capture context** at 24kHz — matches AssemblyAI's PCM16 speech recognition specification.
 
-Audio from your mic flows into an `AudioWorklet` (25ms chunks), gets base64-encoded, and streams to AssemblyAI over a WebSocket. The agent's PCM16 audio reply streams back and gets scheduled via `AudioBufferSourceNode` for gapless playback.
+Microphone audio flows into an `AudioWorklet` processor (25ms buffers), converts to PCM16, and streams over a secure WebSocket. The voice agent executes typed tool definitions (`apply_move`, `describe_board`, `get_legal_moves`) directly against the chess engine and streams synthesized audio replies back for immediate gapless playback.
 
 ---
 
 ## Presentations
 
-- 📊 **[HACKDAY 1.0 Pitch Deck (7-Slide PPTX)](./VoiceChessmate_HACKDAY_1.0.pptx)** — Adheres strictly to the 7-slide requirements (Problem, Solution, Users, Technical, Market, Scalability, If We Had More Time).
-- 📊 **[Hackdevengers 2.0 Deck (8-Slide PPTX)](./VoiceChessmate_Hackdevengers_2.0.pptx)** — In-depth architectural breakdown of AssemblyAI Voice Agent, dual AudioContext, and IBCA standards.
-- 🌐 **[Interactive Web Deck (HACKDAY 1.0)](./public/hackday-presentation.html)** · **[Interactive Web Deck (Hackdevengers)](./public/hackdevengers-presentation.html)**
+- **[HACKDAY 1.0 Pitch Deck (7-Slide PPTX)](./VoiceChessmate_HACKDAY_1.0.pptx)** — Official 7-slide format (Problem, Solution, Target Users, Technical Approach, Market & Business Potential, Scalability & Future, If We Had More Time).
+- **[Hackdevengers 2.0 Deck (8-Slide PPTX)](./VoiceChessmate_Hackdevengers_2.0.pptx)** — Architectural deep-dive into the AssemblyAI Voice Agent, dual AudioContext pipeline, and IBCA standards.
+- **[Interactive Deck: HACKDAY 1.0](./public/hackday-presentation.html)** | **[Interactive Deck: Hackdevengers](./public/hackdevengers-presentation.html)**
 
 ---
 
 ## Running locally
 
-**You'll need Node.js 18+ and an AssemblyAI API key.**
+**Prerequisites:** Node.js 18+ and an AssemblyAI API key.
 
 ```bash
 git clone https://github.com/Aral-549/voicechessmate.git
@@ -91,38 +91,31 @@ Create a `.env.local` file:
 ASSEMBLYAI_API_KEY=your_key_here
 ```
 
-Get a free API key at [assemblyai.com](https://www.assemblyai.com/) — the free tier covers plenty of testing.
-
+Start the application:
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in **Chrome or Edge** (required for `AudioWorklet` and mic access).
+Open [http://localhost:3000](http://localhost:3000) in Chrome or Edge (recommended for AudioWorklet and microphone access).
 
 ---
 
-## Tests
+## Test suite
 
 ```bash
 npm test
 ```
 
-337 tests across 14 files — chess engine logic, move validation, voice pipeline, adversarial stress tests, blitz mode, and more.
+Executes 335 tests across 14 test files covering chess engine mechanics, move notation parsing, voice protocol handling, adversarial stress tests, blitz timers, and edge-case validations.
 
 ---
 
-## Deploying
+## Deployment
 
-This is a standard Next.js app. Deploy to [Vercel](https://vercel.com) in one click — just add `ASSEMBLYAI_API_KEY` as an environment variable. The `/api/token` route mints short-lived tokens server-side so your API key is never exposed to the browser.
-
----
-
-## Built by
-
-Made with a lot of trial and error, a broken audio pipeline, three refactors, and one late-night dual-AudioContext breakthrough.
-
-— Team **Aral-5491** for Hackdevengers 2.0
+Standard Next.js deployment (e.g. Vercel). Set `ASSEMBLYAI_API_KEY` in your environment variables. The `/api/token` endpoint issues ephemeral tokens server-side to prevent client-side credential exposure.
 
 ---
 
-*MIT License*
+## License
+
+MIT License
