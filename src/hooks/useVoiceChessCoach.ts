@@ -10,7 +10,16 @@ import { announce } from "@/lib/announce";
 import { ChessEngine } from "@/lib/chess-engine";
 import { handleToolCall, CHESS_TOOLS, setEngineDifficulty } from "@/lib/tool-handlers";
 import { SYSTEM_PROMPT, GREETING, CHESS_KEYTERMS } from "@/lib/system-prompt";
-import { playMoveEarcon } from "@/lib/sound-effects";
+import {
+  playMoveEarcon,
+  playGameStartSound,
+  playVictorySound,
+  playDefeatSound,
+  playDrawSound,
+  playCastleSound,
+  playPromotionSound,
+  resumeAudioContext,
+} from "@/lib/sound-effects";
 import { useChessClock, type TimeControlMode } from "@/hooks/useChessClock";
 import type { Difficulty } from "@/types";
 
@@ -131,11 +140,27 @@ export function useVoiceChessCoach(options?: VoiceChessCoachOptions) {
     setSnapshot(snapshotOf(game));
   }, [coach, game]);
 
-  /** Sound the last move before any speech — ~250ms vs ~2s for a spoken move. */
+  /** Sound the last move — chess.com-style audio for each event type. */
   const soundLastMove = useCallback(() => {
     const st = coach.getGameState();
     const m = st.lastMove;
     if (!m) return;
+
+    // Castle: two-clunk sound instead of standard earcon
+    if (m.san === 'O-O' || m.san === 'O-O-O') {
+      playCastleSound();
+      return;
+    }
+
+    // Promotion: shimmer chime
+    if (m.san?.includes('=') || m.flags?.includes('p')) {
+      playPromotionSound();
+      // Also play the spatial earcon so blind players hear destination
+      playMoveEarcon({ from: m.from, to: m.to, piece: m.piece, san: m.san });
+      return;
+    }
+
+    // Play spatial earcon (handles check/checkmate alerts internally)
     playMoveEarcon({
       from: m.from,
       to: m.to,
@@ -145,6 +170,16 @@ export function useVoiceChessCoach(options?: VoiceChessCoachOptions) {
       isCheck: st.isCheck,
       isCheckmate: st.isCheckmate,
     });
+
+    // Game-over sounds (after the move sound)
+    if (st.isCheckmate) {
+      // We're the player who just delivered checkmate → victory
+      // Coach (black) delivered it → defeat — we always play victory here
+      // because soundLastMove fires for every move; the GameOverModal handles the UI verdict
+      setTimeout(() => playVictorySound(), 400);
+    } else if (st.isDraw || st.isStalemate) {
+      setTimeout(() => playDrawSound(), 300);
+    }
   }, [coach]);
 
   const addEntry = useCallback((speaker: TranscriptEntry["speaker"], text: string) => {
@@ -180,6 +215,9 @@ export function useVoiceChessCoach(options?: VoiceChessCoachOptions) {
     clock.resetClock();
     syncSnapshot();
     setEntries([{ id: nextId(), speaker: "system", text: "New game. Press J to speak your move.", timestamp: Date.now() }]);
+    // Chess.com-style game-start chime
+    resumeAudioContext();
+    setTimeout(() => playGameStartSound(), 100);
   }, [coach, game, clock, syncSnapshot]);
 
   const dispatchToolSideEffects = useCallback(

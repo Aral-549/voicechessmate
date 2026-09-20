@@ -13,6 +13,13 @@ import { ChessBoardPanel } from "@/components/board/ChessBoardPanel";
 import { SettingsToolbar } from "@/components/a11y/SettingsToolbar";
 import { ShortcutsModal } from "@/components/a11y/ShortcutsModal";
 import { GameOverModal } from "@/components/a11y/GameOverModal";
+import {
+  playGameStartSound,
+  playVictorySound,
+  playDefeatSound,
+  playDrawSound,
+  resumeAudioContext,
+} from "@/lib/sound-effects";
 
 export default function Home() {
   const { settings, toggleHighContrast, toggleBoardVisible, toggleSoundCues, toggleAnnounceCaptions, cycleFontScale, setTheme } =
@@ -36,6 +43,44 @@ export default function Home() {
   useEffect(() => {
     if (!coach.isGameOver) setGameOverDismissed(false);
   }, [coach.isGameOver]);
+
+  // Play game-start sound on first interaction (satisfies browser autoplay policy)
+  useEffect(() => {
+    const onFirstInteraction = () => {
+      resumeAudioContext();
+      playGameStartSound();
+      window.removeEventListener("click", onFirstInteraction);
+      window.removeEventListener("keydown", onFirstInteraction);
+    };
+    window.addEventListener("click", onFirstInteraction, { once: true });
+    window.addEventListener("keydown", onFirstInteraction, { once: true });
+    return () => {
+      window.removeEventListener("click", onFirstInteraction);
+      window.removeEventListener("keydown", onFirstInteraction);
+    };
+  }, []);
+
+  // Play win/loss/draw sound when game ends (only once per game)
+  const gameOverSoundPlayedRef = useState(false);
+  useEffect(() => {
+    if (!coach.isGameOver || gameOverDismissed) return;
+    if (gameOverSoundPlayedRef[0]) return;
+    gameOverSoundPlayedRef[1](true);
+    const { isCheckmate, isDraw, isStalemate, turn } = coach.snapshot ?? {};
+    if (isCheckmate) {
+      // turn is whose turn it IS after the checkmate move — that's the loser
+      // If turn === "w", White is to move but can't → Black (coach) won → player lost
+      if (turn === "w") setTimeout(() => playDefeatSound(), 200);
+      else setTimeout(() => playVictorySound(), 200);
+    } else if (isDraw || isStalemate) {
+      setTimeout(() => playDrawSound(), 200);
+    }
+  }, [coach.isGameOver, coach.snapshot, gameOverDismissed, gameOverSoundPlayedRef]);
+
+  // Reset sound-played flag on new game
+  useEffect(() => {
+    if (!coach.isGameOver) gameOverSoundPlayedRef[1](false);
+  }, [coach.isGameOver, gameOverSoundPlayedRef]);
 
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [isHoldingJ, setIsHoldingJ] = useState(false);

@@ -1,164 +1,306 @@
 // ============================================================
-// VoiceChessmate — Web Audio Sound Effects Synthesis
-// Pure Web Audio API synthesis for chess game events
-// Zero external audio files required — fully accessible & reliable
+// VoiceChessmate — Chess.com-style Sound Engine
+// Pure Web Audio API synthesis — no external files needed.
+//
+// All sounds are designed to closely match chess.com's audio:
+//   - Move:       woody percussive thud (piece hitting board)
+//   - Capture:    sharper crack + thud
+//   - Check:      two-tone metallic alert
+//   - Castle:     two soft clunks in quick succession
+//   - Promote:    ascending shimmer
+//   - Game start: warm three-note welcome chime
+//   - Win:        ascending triumphant arpeggio
+//   - Loss:       descending somber chord
+//   - Draw:       neutral two-tone resolve
+//   - Illegal:    low buzz
 // ============================================================
 
-let audioContext: AudioContext | null = null;
+let _ctx: AudioContext | null = null;
 
-/**
- * Get or create the shared AudioContext singleton.
- * Safely handles SSR and browser autoplay policy.
- */
-export function getAudioContext(): AudioContext | null {
+function ctx(): AudioContext | null {
   if (typeof window === 'undefined') return null;
-
   try {
-    if (!audioContext) {
-      const AudioCtxClass =
-        window.AudioContext ||
+    if (!_ctx) {
+      const C = window.AudioContext ||
         (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      if (!AudioCtxClass) return null;
-      audioContext = new AudioCtxClass();
+      if (!C) return null;
+      _ctx = new C();
     }
-
-    if (audioContext.state === 'suspended') {
-      audioContext.resume().catch(() => {
-        // Autoplay may block until user interaction
-      });
-    }
-
-    return audioContext;
-  } catch (err) {
-    console.warn('[SoundEffects] Could not initialize AudioContext:', err);
+    if (_ctx.state === 'suspended') _ctx.resume().catch(() => {});
+    return _ctx;
+  } catch {
     return null;
   }
 }
 
-/**
- * Resume AudioContext on user interaction to satisfy autoplay policies.
- */
-export function resumeAudioContext(): void {
-  const ctx = getAudioContext();
-  if (ctx && ctx.state === 'suspended') {
-    ctx.resume().catch(() => {});
-  }
-}
+export function getAudioContext() { return ctx(); }
+export function resumeAudioContext() { ctx(); }
 
-/**
- * Helper to create an oscillator note with gain envelope and automatic cleanup.
- */
-// ============================================================
-// Move earcons — a move as sound rather than speech.
-//
-// Speech costs ~2s per move; a sighted player reads the board in ~200ms. This
-// closes that gap: the whole move lands in ~300ms, which is FASTER than sight,
-// not merely quieter than speech.
-//
-//   file  a..h  ->  stereo position, hard left to hard right
-//   rank  1..8  ->  pitch, low to high (major pentatonic, so intervals are
-//                   easy to name and nothing sounds dissonant)
-//   piece       ->  timbre
-//   capture     ->  a noise transient on impact
-//   check       ->  two blips after
-//
-// You hear from-square then to-square, so direction is audible as a glide.
-// Unlike TTS this is Web Audio, so it works in Chromium/Brave too.
-// ============================================================
+// ── Low-level helpers ─────────────────────────────────────────
 
-/** Major pentatonic over ~1.3 octaves: wide enough to tell ranks apart by ear. */
-const RANK_PITCH = [262, 294, 330, 392, 440, 523, 587, 659];
-
-const PIECE_TIMBRE: Record<string, { type: OscillatorType; gain: number }> = {
-  p: { type: 'sine', gain: 0.22 },
-  n: { type: 'triangle', gain: 0.2 },
-  b: { type: 'square', gain: 0.1 }, // square is harmonically loud; pull it down
-  r: { type: 'sawtooth', gain: 0.14 },
-  q: { type: 'sawtooth', gain: 0.18 },
-  k: { type: 'sine', gain: 0.26 },
-};
-
-function squareToAudio(square: string): { pan: number; freq: number } | null {
-  if (!square || square.length < 2) return null;
-  const file = square.charCodeAt(0) - 97; // a=0 .. h=7
-  const rank = parseInt(square[1], 10) - 1; // 1=0 .. 8=7
-  if (file < 0 || file > 7 || rank < 0 || rank > 7) return null;
-  return { pan: -0.85 + (file / 7) * 1.7, freq: RANK_PITCH[rank] };
-}
-
-function panTone(opts: {
-  freq: number;
-  pan: number;
-  type: OscillatorType;
-  start: number;
-  duration: number;
-  gain: number;
-}): void {
-  const ctx = getAudioContext();
-  if (!ctx) return;
-
-  const osc = ctx.createOscillator();
-  const amp = ctx.createGain();
-  osc.type = opts.type;
-  osc.frequency.setValueAtTime(opts.freq, opts.start);
-
-  // Short attack stops the click that a hard gate produces on a 60ms tone.
-  amp.gain.setValueAtTime(0.0001, opts.start);
-  amp.gain.exponentialRampToValueAtTime(opts.gain, opts.start + 0.012);
-  amp.gain.exponentialRampToValueAtTime(0.0001, opts.start + opts.duration);
-
-  let tail: AudioNode = amp;
-  if (typeof ctx.createStereoPanner === 'function') {
-    const panner = ctx.createStereoPanner();
-    panner.pan.setValueAtTime(Math.max(-1, Math.min(1, opts.pan)), opts.start);
-    amp.connect(panner);
-    tail = panner;
-  }
-
-  osc.connect(amp);
-  tail.connect(ctx.destination);
-  osc.start(opts.start);
-  osc.stop(opts.start + opts.duration + 0.02);
-  osc.onended = () => { try { osc.disconnect(); amp.disconnect(); } catch { /* already gone */ } };
-}
-
-/** Filtered noise burst — the "impact" of a capture. */
-function noiseBurst(start: number, pan: number, duration = 0.09): void {
-  const ctx = getAudioContext();
-  if (!ctx) return;
-
-  const frames = Math.max(1, Math.floor(ctx.sampleRate * duration));
-  const buffer = ctx.createBuffer(1, frames, ctx.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < frames; i++) {
-    data[i] = (Math.random() * 2 - 1) * (1 - i / frames); // decaying
-  }
-
-  const src = ctx.createBufferSource();
-  src.buffer = buffer;
-
-  const filter = ctx.createBiquadFilter();
-  filter.type = 'bandpass';
-  filter.frequency.setValueAtTime(1800, start);
-  filter.Q.setValueAtTime(0.8, start);
-
-  const amp = ctx.createGain();
-  amp.gain.setValueAtTime(0.3, start);
+/** Sine/triangle/sawtooth/square tone with smooth attack & exponential decay. */
+function tone(
+  freq: number,
+  start: number,
+  duration: number,
+  gain: number,
+  type: OscillatorType = 'sine',
+  freqEnd?: number,
+  pan = 0,
+): void {
+  const c = ctx();
+  if (!c) return;
+  const osc = c.createOscillator();
+  const amp = c.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, start);
+  if (freqEnd != null) osc.frequency.exponentialRampToValueAtTime(Math.max(freqEnd, 1), start + duration);
+  amp.gain.setValueAtTime(0.0001, start);
+  amp.gain.exponentialRampToValueAtTime(gain, start + 0.008);
   amp.gain.exponentialRampToValueAtTime(0.0001, start + duration);
 
-  let tail: AudioNode = amp;
-  if (typeof ctx.createStereoPanner === 'function') {
-    const panner = ctx.createStereoPanner();
-    panner.pan.setValueAtTime(Math.max(-1, Math.min(1, pan)), start);
-    amp.connect(panner);
-    tail = panner;
+  let out: AudioNode = amp;
+  if (pan !== 0 && typeof c.createStereoPanner === 'function') {
+    const p = c.createStereoPanner();
+    p.pan.setValueAtTime(Math.max(-1, Math.min(1, pan)), start);
+    amp.connect(p);
+    out = p;
+  }
+  osc.connect(amp);
+  out.connect(c.destination);
+  osc.start(start);
+  osc.stop(start + duration + 0.03);
+  osc.onended = () => { try { osc.disconnect(); amp.disconnect(); } catch { /**/ } };
+}
+
+/**
+ * Percussive wood thud — the signature chess.com piece-placement sound.
+ * Built from filtered white noise shaped like a drum transient.
+ *
+ * freq:   centre of the bandpass filter (higher = brighter / lighter piece)
+ * attack: noise decay time in seconds
+ * gain:   overall loudness
+ */
+function woodThud(start: number, freq: number, attack: number, gain: number, pan = 0): void {
+  const c = ctx();
+  if (!c) return;
+  const frames = Math.ceil(c.sampleRate * attack * 1.5);
+  const buf = c.createBuffer(1, frames, c.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < frames; i++) {
+    // exponential decay envelope on white noise
+    d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (frames * 0.35));
+  }
+  const src = c.createBufferSource();
+  src.buffer = buf;
+
+  const hp = c.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 80;
+
+  const bp = c.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = freq;
+  bp.Q.value = 1.2;
+
+  const amp = c.createGain();
+  amp.gain.setValueAtTime(gain, start);
+  amp.gain.exponentialRampToValueAtTime(0.0001, start + attack);
+
+  let out: AudioNode = amp;
+  if (pan !== 0 && typeof c.createStereoPanner === 'function') {
+    const p = c.createStereoPanner();
+    p.pan.setValueAtTime(Math.max(-1, Math.min(1, pan)), start);
+    amp.connect(p);
+    out = p;
   }
 
-  src.connect(filter);
-  filter.connect(amp);
-  tail.connect(ctx.destination);
+  src.connect(hp);
+  hp.connect(bp);
+  bp.connect(amp);
+  out.connect(c.destination);
   src.start(start);
-  src.onended = () => { try { src.disconnect(); filter.disconnect(); amp.disconnect(); } catch { /* gone */ } };
+  src.onended = () => { try { src.disconnect(); hp.disconnect(); bp.disconnect(); amp.disconnect(); } catch { /**/ } };
+}
+
+/** Short metallic click transient — used for lighter sounds like the "lift" of a piece. */
+function click(start: number, freq: number, gain: number, pan = 0): void {
+  woodThud(start, freq, 0.025, gain, pan);
+}
+
+// ── Chess.com-style move sounds ──────────────────────────────
+
+/**
+ * Standard piece move — soft woody thud, just like chess.com's default "Move" sound.
+ * Two layers: a deep body resonance + a mid surface knock.
+ */
+export function playMoveSound(): void {
+  const c = ctx();
+  if (!c) return;
+  const t = c.currentTime + 0.01;
+  woodThud(t,        280, 0.12, 0.55);  // deep body resonance
+  woodThud(t + 0.01, 900, 0.05, 0.30);  // surface knock transient
+}
+
+/**
+ * Capture — same as move but with a sharper initial crack,
+ * mirroring chess.com's distinct "Capture" sound.
+ */
+export function playCaptureSound(): void {
+  const c = ctx();
+  if (!c) return;
+  const t = c.currentTime + 0.01;
+  woodThud(t,        600, 0.06, 0.70);  // sharp strike (displaced piece)
+  woodThud(t + 0.05, 280, 0.14, 0.60);  // thud of capturing piece landing
+}
+
+/**
+ * Check — chess.com's check sound: two urgent metallic pings, ascending.
+ */
+export function playCheckSound(): void {
+  const c = ctx();
+  if (!c) return;
+  const t = c.currentTime + 0.01;
+  tone(1046.5, t,        0.10, 0.22, 'triangle');  // C6 — first alert
+  tone(1318.5, t + 0.12, 0.14, 0.25, 'sine');     // E6 — second (higher urgency)
+}
+
+/**
+ * Castle — two soft clunks (king then rook), slightly separated,
+ * matching chess.com's castle sound.
+ */
+export function playCastleSound(): void {
+  const c = ctx();
+  if (!c) return;
+  const t = c.currentTime + 0.01;
+  woodThud(t,        320, 0.10, 0.50);  // king slides
+  woodThud(t + 0.12, 320, 0.10, 0.42);  // rook follows
+}
+
+/**
+ * Promotion — an ascending shimmer chime, like chess.com's promotion fanfare.
+ */
+export function playPromotionSound(): void {
+  const c = ctx();
+  if (!c) return;
+  const t = c.currentTime + 0.01;
+  // Rising arpeggio: C5 → E5 → G5 → B5
+  [523.25, 659.25, 783.99, 987.77].forEach((f, i) => {
+    tone(f, t + i * 0.08, 0.20, 0.18, 'sine');
+    tone(f * 2, t + i * 0.08, 0.12, 0.06, 'triangle'); // octave shimmer
+  });
+}
+
+/**
+ * Checkmate — the full playMoveEarcon already handles this via blips,
+ * but callers can also trigger this standalone.
+ */
+export function playCheckmateSound(): void {
+  const c = ctx();
+  if (!c) return;
+  const t = c.currentTime + 0.01;
+  [880, 1108, 1318].forEach((f, i) =>
+    tone(f, t + i * 0.13, 0.15, 0.20, 'triangle')
+  );
+}
+
+// ── Game lifecycle sounds ────────────────────────────────────
+
+/**
+ * Game start — a warm, welcoming two-note chime.
+ * Chess.com plays a gentle "ready" sound when a game begins.
+ */
+export function playGameStartSound(): void {
+  const c = ctx();
+  if (!c) return;
+  const t = c.currentTime + 0.05;
+  // G4 → B4 — a warm, inviting perfect third
+  tone(392.00, t,        0.30, 0.18, 'sine');
+  tone(493.88, t + 0.18, 0.45, 0.20, 'sine');
+  // Soft harmonic layer
+  tone(784.00, t,        0.20, 0.07, 'triangle');
+  tone(987.77, t + 0.18, 0.35, 0.08, 'triangle');
+}
+
+/**
+ * Win / Checkmate delivered — chess.com's triumphant ascending fanfare.
+ * Four-note C major arpeggio that feels satisfying.
+ */
+export function playVictorySound(): void {
+  const c = ctx();
+  if (!c) return;
+  const t = c.currentTime + 0.05;
+  const notes = [
+    { f: 523.25, dt: 0.00, dur: 0.12 },  // C5
+    { f: 659.25, dt: 0.10, dur: 0.12 },  // E5
+    { f: 783.99, dt: 0.20, dur: 0.14 },  // G5
+    { f: 1046.5, dt: 0.33, dur: 0.50 },  // C6 (held)
+  ];
+  notes.forEach(({ f, dt, dur }) => {
+    tone(f,     t + dt, dur, 0.22, 'triangle');
+    tone(f,     t + dt, dur, 0.14, 'sine');
+    tone(f * 2, t + dt, dur * 0.7, 0.05, 'sine'); // octave shimmer
+  });
+}
+
+/**
+ * Loss / Defeat — chess.com's somber descending tone.
+ */
+export function playDefeatSound(): void {
+  const c = ctx();
+  if (!c) return;
+  const t = c.currentTime + 0.05;
+  // Descending: E4 → C4 → A3
+  [
+    { f: 329.63, dt: 0.00, dur: 0.25 },
+    { f: 261.63, dt: 0.22, dur: 0.28 },
+    { f: 220.00, dt: 0.46, dur: 0.50 },
+  ].forEach(({ f, dt, dur }) => {
+    tone(f, t + dt, dur, 0.18, 'triangle');
+    tone(f, t + dt, dur, 0.10, 'sine');
+  });
+}
+
+/**
+ * Draw / Stalemate — neutral two-tone resolve.
+ */
+export function playDrawSound(): void {
+  const c = ctx();
+  if (!c) return;
+  const t = c.currentTime + 0.05;
+  tone(392.00, t,        0.28, 0.16, 'sine');     // G4
+  tone(440.00, t + 0.22, 0.40, 0.16, 'triangle'); // A4 (gentle unresolved feel)
+}
+
+/**
+ * Illegal move / Error — chess.com plays a short buzz.
+ */
+export function playErrorSound(): void {
+  const c = ctx();
+  if (!c) return;
+  const t = c.currentTime + 0.01;
+  tone(160, t, 0.18, 0.20, 'sawtooth', 110);
+  tone(163, t, 0.18, 0.20, 'sawtooth', 112); // slight detuning = dissonant buzz
+}
+
+// ── Full move earcon (spatial audio for blind play) ──────────
+
+const RANK_PITCH = [262, 294, 330, 392, 440, 523, 587, 659];
+const PIECE_TIMBRE: Record<string, { type: OscillatorType; gain: number }> = {
+  p: { type: 'sine',     gain: 0.22 },
+  n: { type: 'triangle', gain: 0.20 },
+  b: { type: 'square',   gain: 0.10 },
+  r: { type: 'sawtooth', gain: 0.14 },
+  q: { type: 'sawtooth', gain: 0.18 },
+  k: { type: 'sine',     gain: 0.26 },
+};
+
+function squareToAudio(sq: string): { pan: number; freq: number } | null {
+  if (!sq || sq.length < 2) return null;
+  const file = sq.charCodeAt(0) - 97;
+  const rank = parseInt(sq[1], 10) - 1;
+  if (file < 0 || file > 7 || rank < 0 || rank > 7) return null;
+  return { pan: -0.85 + (file / 7) * 1.7, freq: RANK_PITCH[rank] };
 }
 
 export interface EarconMove {
@@ -171,297 +313,74 @@ export interface EarconMove {
   isCheckmate?: boolean;
 }
 
-/** Sound a whole move. Returns the length in ms so callers can sequence speech after it. */
+/**
+ * Spatial audio move earcon for accessibility (blind/VI players).
+ * from-square plays first (soft), to-square lands (full).
+ * File = stereo pan, rank = pitch, piece = timbre.
+ * Returns approximate duration in ms so speech can be timed.
+ */
 export function playMoveEarcon(move: EarconMove): number {
-  const ctx = getAudioContext();
-  if (!ctx) return 0;
-  resumeAudioContext();
+  const c = ctx();
+  if (!c) return 0;
 
-  const t0 = ctx.currentTime + 0.01;
+  const t0 = c.currentTime + 0.01;
   const timbre = PIECE_TIMBRE[move.piece] ?? PIECE_TIMBRE.p;
 
-  // Castling reads as two separate pieces landing, king first.
+  // Castling: two clunks at destination squares
   if (move.san === 'O-O' || move.san === 'O-O-O') {
-    const kingTo = move.san === 'O-O' ? 'g1' : 'c1';
-    const rookTo = move.san === 'O-O' ? 'f1' : 'd1';
-    const k = squareToAudio(kingTo);
-    const r = squareToAudio(rookTo);
-    if (k) panTone({ ...k, type: 'sine', start: t0, duration: 0.12, gain: 0.26 });
-    if (r) panTone({ ...r, type: 'sawtooth', start: t0 + 0.13, duration: 0.12, gain: 0.14 });
+    const kingTo = squareToAudio(move.san === 'O-O' ? 'g1' : 'c1');
+    const rookTo = squareToAudio(move.san === 'O-O' ? 'f1' : 'd1');
+    if (kingTo) tone(kingTo.freq, t0,        0.12, 0.26, 'sine',     undefined, kingTo.pan);
+    if (rookTo) tone(rookTo.freq, t0 + 0.14, 0.12, 0.14, 'sawtooth', undefined, rookTo.pan);
     return 280;
   }
 
   const from = squareToAudio(move.from);
-  const to = squareToAudio(move.to);
+  const to   = squareToAudio(move.to);
   if (!to) return 0;
 
-  // Origin: quiet and brief — it establishes direction without costing time.
+  // Lift sound (quiet)
   if (from) {
-    panTone({ ...from, type: timbre.type, start: t0, duration: 0.055, gain: timbre.gain * 0.45 });
+    click(t0, 900, timbre.gain * 0.3, from.pan);
+    tone(from.freq, t0, 0.055, timbre.gain * 0.35, timbre.type, undefined, from.pan);
   }
 
-  const landing = t0 + 0.07;
-  if (move.captured) noiseBurst(landing, to.pan);
-  panTone({ ...to, type: timbre.type, start: landing, duration: 0.16, gain: timbre.gain });
-
-  // Queen gets a fifth stacked on top so it's unmistakable against a rook.
+  const land = t0 + 0.08;
+  if (move.captured) {
+    // Capture: sharp crack then thud
+    woodThud(land,        600, 0.05, 0.55, to.pan);
+    woodThud(land + 0.04, 280, 0.12, 0.50, to.pan);
+  } else {
+    // Move: softer woody thud
+    woodThud(land,        320, 0.10, 0.45, to.pan);
+  }
+  // Tonal overlay so blind players hear the piece type and rank
+  tone(to.freq, land, 0.18, timbre.gain, timbre.type, undefined, to.pan);
   if (move.piece === 'q') {
-    panTone({ freq: to.freq * 1.5, pan: to.pan, type: 'sine', start: landing, duration: 0.16, gain: 0.1 });
+    tone(to.freq * 1.5, land, 0.18, 0.08, 'sine', undefined, to.pan);
   }
 
-  let total = 250;
+  let total = 260;
   if (move.isCheckmate) {
-    [0, 0.12, 0.24].forEach((d, i) =>
-      panTone({ freq: 880 + i * 220, pan: 0, type: 'square', start: landing + 0.2 + d, duration: 0.11, gain: 0.12 })
+    [0, 0.13, 0.26].forEach((d, i) =>
+      tone(880 + i * 220, land + 0.22 + d, 0.12, 0.12, 'square')
     );
-    total = 620;
+    total = 650;
   } else if (move.isCheck) {
-    [0, 0.1].forEach((d) =>
-      panTone({ freq: 1320, pan: 0, type: 'square', start: landing + 0.2 + d, duration: 0.07, gain: 0.1 })
-    );
-    total = 450;
+    tone(1046.5, land + 0.22, 0.10, 0.18, 'triangle');
+    tone(1318.5, land + 0.34, 0.14, 0.20, 'sine');
+    total = 500;
   }
   return total;
 }
 
-/** Sweep a2->h2 so a player can calibrate the pan/pitch mapping by ear. */
+/** Board orientation calibration sweep (a→h, rank 4). */
 export function playBoardOrientationCue(): void {
-  const ctx = getAudioContext();
-  if (!ctx) return;
-  resumeAudioContext();
-  const t0 = ctx.currentTime + 0.02;
+  const c = ctx();
+  if (!c) return;
+  const t0 = c.currentTime + 0.02;
   for (let file = 0; file < 8; file++) {
     const sq = squareToAudio(String.fromCharCode(97 + file) + '4');
-    if (sq) panTone({ ...sq, type: 'sine', start: t0 + file * 0.1, duration: 0.09, gain: 0.18 });
-  }
-}
-
-function playTone({
-  frequency,
-  type = 'sine',
-  startTime,
-  duration,
-  gainStart = 0.3,
-  gainEnd = 0.001,
-  freqEnd,
-}: {
-  frequency: number;
-  type?: OscillatorType;
-  startTime: number;
-  duration: number;
-  gainStart?: number;
-  gainEnd?: number;
-  freqEnd?: number;
-}): void {
-  const ctx = getAudioContext();
-  if (!ctx) return;
-
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-
-  osc.type = type;
-  osc.frequency.setValueAtTime(frequency, startTime);
-  if (freqEnd !== undefined) {
-    osc.frequency.exponentialRampToValueAtTime(Math.max(freqEnd, 10), startTime + duration);
-  }
-
-  gain.gain.setValueAtTime(gainStart, startTime);
-  gain.gain.exponentialRampToValueAtTime(gainEnd, startTime + duration);
-
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-
-  osc.start(startTime);
-  osc.stop(startTime + duration);
-
-  osc.onended = () => {
-    try {
-      osc.disconnect();
-      gain.disconnect();
-    } catch {
-      // Ignore disconnect errors
-    }
-  };
-}
-
-/**
- * Soft gentle wooden piece move tone.
- * Low resonant impact simulating a chess piece placed on a wooden board.
- */
-export function playMoveSound(): void {
-  try {
-    const ctx = getAudioContext();
-    if (!ctx) return;
-    const now = ctx.currentTime;
-
-    // Body thud: low triangle wave dropping in frequency
-    playTone({
-      frequency: 240,
-      freqEnd: 85,
-      type: 'triangle',
-      startTime: now,
-      duration: 0.09,
-      gainStart: 0.28,
-      gainEnd: 0.001,
-    });
-
-    // Subtle surface knock
-    playTone({
-      frequency: 520,
-      freqEnd: 180,
-      type: 'sine',
-      startTime: now,
-      duration: 0.03,
-      gainStart: 0.15,
-      gainEnd: 0.001,
-    });
-  } catch (err) {
-    console.warn('[SoundEffects] playMoveSound failed:', err);
-  }
-}
-
-/**
- * Crisp dual-tone capture sound.
- * Two distinct sequential clicks simulating a piece striking and displacing another.
- */
-export function playCaptureSound(): void {
-  try {
-    const ctx = getAudioContext();
-    if (!ctx) return;
-    const now = ctx.currentTime;
-
-    // Initial sharp strike
-    playTone({
-      frequency: 680,
-      freqEnd: 420,
-      type: 'triangle',
-      startTime: now,
-      duration: 0.05,
-      gainStart: 0.32,
-      gainEnd: 0.001,
-    });
-
-    // Secondary wooden thud
-    playTone({
-      frequency: 280,
-      freqEnd: 110,
-      type: 'triangle',
-      startTime: now + 0.04,
-      duration: 0.1,
-      gainStart: 0.35,
-      gainEnd: 0.001,
-    });
-  } catch (err) {
-    console.warn('[SoundEffects] playCaptureSound failed:', err);
-  }
-}
-
-/**
- * Sharp alert tone for Check.
- * High two-tone warning alert notifying the player their King is threatened.
- */
-export function playCheckSound(): void {
-  try {
-    const ctx = getAudioContext();
-    if (!ctx) return;
-    const now = ctx.currentTime;
-
-    // First sharp warning tone (A5)
-    playTone({
-      frequency: 880,
-      type: 'triangle',
-      startTime: now,
-      duration: 0.07,
-      gainStart: 0.35,
-      gainEnd: 0.001,
-    });
-
-    // Second higher alert tone (D6)
-    playTone({
-      frequency: 1174.66,
-      type: 'sine',
-      startTime: now + 0.08,
-      duration: 0.15,
-      gainStart: 0.4,
-      gainEnd: 0.001,
-    });
-  } catch (err) {
-    console.warn('[SoundEffects] playCheckSound failed:', err);
-  }
-}
-
-/**
- * Ascending triumphant arpeggio for Victory / Checkmate.
- * Celebratory 4-note major arpeggio (C5 - E5 - G5 - C6).
- */
-export function playVictorySound(): void {
-  try {
-    const ctx = getAudioContext();
-    if (!ctx) return;
-    const now = ctx.currentTime;
-
-    const notes = [
-      { freq: 523.25, time: 0.0, dur: 0.09 },   // C5
-      { freq: 659.25, time: 0.08, dur: 0.09 },  // E5
-      { freq: 783.99, time: 0.16, dur: 0.11 },  // G5
-      { freq: 1046.50, time: 0.26, dur: 0.35 }, // C6
-    ];
-
-    notes.forEach(({ freq, time, dur }) => {
-      playTone({
-        frequency: freq,
-        type: 'triangle',
-        startTime: now + time,
-        duration: dur,
-        gainStart: 0.3,
-        gainEnd: 0.001,
-      });
-      // Layer subtle sine for warmth
-      playTone({
-        frequency: freq,
-        type: 'sine',
-        startTime: now + time,
-        duration: dur,
-        gainStart: 0.2,
-        gainEnd: 0.001,
-      });
-    });
-  } catch (err) {
-    console.warn('[SoundEffects] playVictorySound failed:', err);
-  }
-}
-
-/**
- * Low warning buzzer tone for errors or invalid actions.
- * Dissonant dual low tone indicating an error, illegal move, or failure.
- */
-export function playErrorSound(): void {
-  try {
-    const ctx = getAudioContext();
-    if (!ctx) return;
-    const now = ctx.currentTime;
-
-    // Dissonant dual low tones producing a gentle buzz
-    playTone({
-      frequency: 140,
-      freqEnd: 110,
-      type: 'sawtooth',
-      startTime: now,
-      duration: 0.22,
-      gainStart: 0.22,
-      gainEnd: 0.001,
-    });
-
-    playTone({
-      frequency: 147,
-      freqEnd: 115,
-      type: 'sawtooth',
-      startTime: now,
-      duration: 0.22,
-      gainStart: 0.22,
-      gainEnd: 0.001,
-    });
-  } catch (err) {
-    console.warn('[SoundEffects] playErrorSound failed:', err);
+    if (sq) tone(sq.freq, t0 + file * 0.10, 0.09, 0.18, 'sine', undefined, sq.pan);
   }
 }
