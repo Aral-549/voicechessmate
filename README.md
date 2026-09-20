@@ -70,11 +70,10 @@ Microphone audio flows into an `AudioWorklet` processor (25ms buffers), converts
 
 ---
 
-## Presentations
+## Presentation
 
 - **[HACKDAY 1.0 Pitch Deck (7-Slide PPTX)](./VoiceChessmate_HACKDAY_1.0.pptx)** — Official 7-slide format (Problem, Solution, Target Users, Technical Approach, Market & Business Potential, Scalability & Future, If We Had More Time).
-- **[Hackdevengers 2.0 Deck (8-Slide PPTX)](./VoiceChessmate_Hackdevengers_2.0.pptx)** — Architectural deep-dive into the AssemblyAI Voice Agent, dual AudioContext pipeline, and IBCA standards.
-- **[Interactive Deck: HACKDAY 1.0](./public/hackday-presentation.html)** | **[Interactive Deck: Hackdevengers](./public/hackdevengers-presentation.html)**
+- **[Interactive Web Deck](./public/hackday-presentation.html)**
 
 ---
 
