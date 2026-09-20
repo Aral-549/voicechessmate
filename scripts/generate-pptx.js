@@ -7,7 +7,7 @@ function svgUri(svgString) {
   return "image/svg+xml;base64," + Buffer.from(svgString).toString("base64");
 }
 
-// Crisp modern monochrome / themed SVG icons (NO EMOJIS)
+// Crisp modern monochrome / themed SVG icons (ZERO EMOJIS)
 const icons = {
   chessKnight: (color = "#3ECF8E") => svgUri(`
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -88,9 +88,11 @@ const icons = {
       <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
     </svg>
   `),
-  check: (color = "#3ECF8E") => svgUri(`
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="20 6 9 17 4 12"/>
+  layers: (color = "#F0C040") => svgUri(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+      <polyline points="2 17 12 22 22 17"/>
+      <polyline points="2 12 12 17 22 12"/>
     </svg>
   `),
   terminal: (color = "#5BA3F5") => svgUri(`
@@ -98,22 +100,15 @@ const icons = {
       <polyline points="4 17 10 11 4 5"/>
       <line x1="12" x2="20" y1="19" y2="19"/>
     </svg>
-  `),
-  layers: (color = "#F0C040") => svgUri(`
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <polygon points="12 2 2 7 12 12 22 7 12 2"/>
-      <polyline points="2 17 12 22 22 17"/>
-      <polyline points="2 12 12 17 22 12"/>
-    </svg>
   `)
 };
 
-// Common slide style helpers
+// Slide Header helper (strict boundary within 13.333 x 7.5)
 function addSlideHeader(slide, category, title, accentColor = "3ECF8E") {
   // Category Pill
   slide.addShape("roundRect", {
     x: 0.8,
-    y: 0.5,
+    y: 0.45,
     w: 2.2,
     h: 0.32,
     fill: { color: "112218" },
@@ -122,7 +117,7 @@ function addSlideHeader(slide, category, title, accentColor = "3ECF8E") {
   });
   slide.addText(category.toUpperCase(), {
     x: 0.8,
-    y: 0.5,
+    y: 0.45,
     w: 2.2,
     h: 0.32,
     fontFace: "Arial",
@@ -136,11 +131,11 @@ function addSlideHeader(slide, category, title, accentColor = "3ECF8E") {
   // Main Title
   slide.addText(title, {
     x: 0.8,
-    y: 0.9,
-    w: 11.5,
-    h: 0.7,
+    y: 0.85,
+    w: 11.7,
+    h: 0.65,
     fontFace: "Arial",
-    fontSize: 24,
+    fontSize: 22,
     bold: true,
     color: "E8F4EE"
   });
@@ -151,7 +146,9 @@ function addSlideHeader(slide, category, title, accentColor = "3ECF8E") {
 // -------------------------------------------------------------
 async function buildHackdayPresentation() {
   const pptx = new pptxgen();
-  pptx.layout = "LAYOUT_16x9"; // 13.33 x 7.5 inches
+  // Set explicit 16:9 Widescreen (13.333 x 7.5 inches)
+  pptx.defineLayout({ name: "WIDESCREEN_16_9", width: 13.333, height: 7.5 });
+  pptx.layout = "WIDESCREEN_16_9";
   pptx.title = "VoiceChessmate - HACKDAY 1.0";
   pptx.author = "VoiceChessmate Team";
 
@@ -165,7 +162,6 @@ async function buildHackdayPresentation() {
     s.background = { color: BG };
     addSlideHeader(s, "01. Problem Statement", "Chess is Global. Digital Chess Locks Out 285M Blind Players.", "F05060");
 
-    // 3 Problem Cards
     const cards = [
       {
         icon: icons.eyeOff("#F05060"),
@@ -174,7 +170,7 @@ async function buildHackdayPresentation() {
       },
       {
         icon: icons.clock("#F0C040"),
-        title: "Screen Reader Friction & Latency",
+        title: "Screen Reader Friction",
         desc: "Screen readers read raw DOM tables cell by cell. This adds 6-10 seconds of cognitive and mechanical delay per move, making clock flag-falls inevitable."
       },
       {
@@ -184,22 +180,24 @@ async function buildHackdayPresentation() {
       }
     ];
 
+    const cardW = 3.65;
+    const gap = 0.38;
     cards.forEach((c, i) => {
-      const x = 0.8 + i * 3.95;
+      const x = 0.8 + i * (cardW + gap);
       s.addShape("roundRect", {
-        x, y: 1.9, w: 3.75, h: 4.8,
+        x, y: 1.75, w: cardW, h: 4.8,
         fill: { color: CARD_BG },
         line: { color: CARD_BORDER, width: 1 },
         rectRadius: 0.15
       });
-      s.addImage({ data: c.icon, x: x + 0.4, y: 2.3, w: 0.55, h: 0.55 });
+      s.addImage({ data: c.icon, x: x + 0.35, y: 2.1, w: 0.5, h: 0.5 });
       s.addText(c.title, {
-        x: x + 0.4, y: 3.1, w: 2.95, h: 0.8,
+        x: x + 0.35, y: 2.8, w: cardW - 0.7, h: 0.6,
         fontFace: "Arial", fontSize: 16, bold: true, color: "FFFFFF"
       });
       s.addText(c.desc, {
-        x: x + 0.4, y: 4.0, w: 2.95, h: 2.3,
-        fontFace: "Arial", fontSize: 13, color: "9AB4A5", lineSpacing: 18
+        x: x + 0.35, y: 3.6, w: cardW - 0.7, h: 2.6,
+        fontFace: "Arial", fontSize: 12.5, color: "9AB4A5", lineSpacing: 18
       });
     });
   }
@@ -211,16 +209,17 @@ async function buildHackdayPresentation() {
     addSlideHeader(s, "02. Proposed Solution", "VoiceChessmate: The Eyes-Free, Voice-First Chess Companion", "3ECF8E");
 
     // Left Column: The Experience
+    const leftW = 5.65;
     s.addShape("roundRect", {
-      x: 0.8, y: 1.9, w: 5.8, h: 4.8,
+      x: 0.8, y: 1.75, w: leftW, h: 4.8,
       fill: { color: CARD_BG },
       line: { color: CARD_BORDER, width: 1 },
       rectRadius: 0.15
     });
-    s.addImage({ data: icons.mic("#3ECF8E"), x: 1.2, y: 2.3, w: 0.55, h: 0.55 });
+    s.addImage({ data: icons.mic("#3ECF8E"), x: 1.15, y: 2.1, w: 0.5, h: 0.5 });
     s.addText("Natural Conversational Chess", {
-      x: 1.9, y: 2.35, w: 4.4, h: 0.4,
-      fontFace: "Arial", fontSize: 18, bold: true, color: "FFFFFF"
+      x: 1.8, y: 2.15, w: leftW - 1.2, h: 0.4,
+      fontFace: "Arial", fontSize: 17, bold: true, color: "FFFFFF"
     });
     s.addText(
       "Players simply hold 'J' (push-to-talk) and speak naturally:\n" +
@@ -228,12 +227,14 @@ async function buildHackdayPresentation() {
       "  • 'Describe my threats' or 'What is my best development?'\n\n" +
       "The Voice Agent immediately confirms moves, executes the AI reply, and speaks tactical coaching guidance back with zero screen dependency.",
       {
-        x: 1.2, y: 3.1, w: 5.0, h: 3.2,
-        fontFace: "Arial", fontSize: 14, color: "9AB4A5", lineSpacing: 20
+        x: 1.15, y: 2.85, w: leftW - 0.7, h: 3.3,
+        fontFace: "Arial", fontSize: 13, color: "9AB4A5", lineSpacing: 19
       }
     );
 
     // Right Column: Key Innovations
+    const rightW = 5.65;
+    const rightX = 6.85;
     const features = [
       { icon: icons.volume("#3ECF8E"), title: "Zero-Latency Audio Engine", desc: "Dual AudioContext: 48kHz native playback + 24kHz capture with realistic wooden piece acoustics." },
       { icon: icons.accessibility("#3ECF8E"), title: "FIDE & IBCA Phonetics", desc: "Native support for international blind chess coordinate phonetics (Anna, Bella, Cesar, David...)." },
@@ -241,21 +242,21 @@ async function buildHackdayPresentation() {
     ];
 
     features.forEach((f, i) => {
-      const y = 1.9 + i * 1.65;
+      const y = 1.75 + i * 1.65;
       s.addShape("roundRect", {
-        x: 6.9, y, w: 5.6, h: 1.45,
+        x: rightX, y, w: rightW, h: 1.5,
         fill: { color: CARD_BG },
         line: { color: CARD_BORDER, width: 1 },
         rectRadius: 0.15
       });
-      s.addImage({ data: f.icon, x: 7.2, y: y + 0.35, w: 0.45, h: 0.45 });
+      s.addImage({ data: f.icon, x: rightX + 0.3, y: y + 0.35, w: 0.45, h: 0.45 });
       s.addText(f.title, {
-        x: 7.8, y: y + 0.25, w: 4.4, h: 0.35,
+        x: rightX + 0.9, y: y + 0.25, w: rightW - 1.1, h: 0.35,
         fontFace: "Arial", fontSize: 14, bold: true, color: "FFFFFF"
       });
       s.addText(f.desc, {
-        x: 7.8, y: y + 0.65, w: 4.4, h: 0.65,
-        fontFace: "Arial", fontSize: 12, color: "9AB4A5"
+        x: rightX + 0.9, y: y + 0.65, w: rightW - 1.1, h: 0.7,
+        fontFace: "Arial", fontSize: 11.5, color: "9AB4A5", lineSpacing: 15
       });
     });
   }
@@ -269,50 +270,52 @@ async function buildHackdayPresentation() {
     const users = [
       {
         icon: icons.accessibility("#5BA3F5"),
-        title: "Blind & Low-Vision Players",
+        title: "Blind & Low-Vision",
         stat: "285 Million",
         statLabel: "Visually impaired globally",
         desc: "Complete eyes-free gameplay with spatial stereo earcons, audio coordinate verification, and zero visual friction."
       },
       {
         icon: icons.users("#3ECF8E"),
-        title: "Chess Students & Learners",
+        title: "Chess Students",
         stat: "600+ Million",
         statLabel: "Active chess players worldwide",
         desc: "Interactive voice coaching that explains why a move was played, detects mistakes, and provides on-demand tactical reviews."
       },
       {
         icon: icons.mic("#F0C040"),
-        title: "Hands-Free & Commuter Players",
+        title: "Commuter Players",
         stat: "10+ Million",
-        statLabel: "Mobile audio entertainment market",
+        statLabel: "Mobile audio gaming segment",
         desc: "Play rated games while commuting, exercising, or multitasking without looking at a phone or touching a keyboard."
       }
     ];
 
+    const cardW = 3.65;
+    const gap = 0.38;
     users.forEach((u, i) => {
-      const x = 0.8 + i * 3.95;
+      const x = 0.8 + i * (cardW + gap);
       s.addShape("roundRect", {
-        x, y: 1.9, w: 3.75, h: 4.8,
+        x, y: 1.75, w: cardW, h: 4.8,
         fill: { color: CARD_BG },
         line: { color: CARD_BORDER, width: 1 },
         rectRadius: 0.15
       });
-      s.addImage({ data: u.icon, x: x + 0.4, y: 2.3, w: 0.5, h: 0.5 });
+      s.addImage({ data: u.icon, x: x + 0.35, y: 2.1, w: 0.5, h: 0.5 });
       s.addText(u.title, {
-        x: x + 0.4, y: 3.0, w: 2.95, h: 0.6,
+        x: x + 0.35, y: 2.8, w: cardW - 0.7, h: 0.5,
         fontFace: "Arial", fontSize: 16, bold: true, color: "FFFFFF"
       });
       s.addText(u.stat, {
-        x: x + 0.4, y: 3.7, w: 2.95, h: 0.5,
-        fontFace: "Arial", fontSize: 24, bold: true, color: "5BA3F5"
+        x: x + 0.35, y: 3.45, w: cardW - 0.7, h: 0.5,
+        fontFace: "Arial", fontSize: 22, bold: true, color: "5BA3F5"
       });
       s.addText(u.statLabel, {
-        x: x + 0.4, y: 4.2, w: 2.95, h: 0.3,
-        fontFace: "Arial", fontSize: 11, color: "6E8A7B"
+        x: x + 0.35, y: 3.95, w: cardW - 0.7, h: 0.3,
+        fontFace: "Arial", fontSize: 10.5, color: "6E8A7B"
       });
       s.addText(u.desc, {
-        x: x + 0.4, y: 4.6, w: 2.95, h: 1.8,
+        x: x + 0.35, y: 4.4, w: cardW - 0.7, h: 1.9,
         fontFace: "Arial", fontSize: 12, color: "9AB4A5", lineSpacing: 16
       });
     });
@@ -351,29 +354,31 @@ async function buildHackdayPresentation() {
         bullets: [
           "chess.js integration with complete legal move validation.",
           "Stockfish 16 WASM AI opponent with 4 difficulty levels.",
-          "337 automated Vitest unit & adversarial tests in CI.",
+          "335 automated Vitest unit & adversarial tests in CI.",
           "Full state persistence across network reconnects."
         ]
       }
     ];
 
+    const cardW = 3.65;
+    const gap = 0.38;
     techColumns.forEach((t, i) => {
-      const x = 0.8 + i * 3.95;
+      const x = 0.8 + i * (cardW + gap);
       s.addShape("roundRect", {
-        x, y: 1.9, w: 3.75, h: 4.8,
+        x, y: 1.75, w: cardW, h: 4.8,
         fill: { color: CARD_BG },
         line: { color: CARD_BORDER, width: 1 },
         rectRadius: 0.15
       });
-      s.addImage({ data: t.icon, x: x + 0.4, y: 2.3, w: 0.45, h: 0.45 });
+      s.addImage({ data: t.icon, x: x + 0.35, y: 2.1, w: 0.45, h: 0.45 });
       s.addText(t.heading, {
-        x: x + 0.4, y: 2.9, w: 2.95, h: 0.6,
-        fontFace: "Arial", fontSize: 16, bold: true, color: "FFFFFF"
+        x: x + 0.35, y: 2.7, w: cardW - 0.7, h: 0.6,
+        fontFace: "Arial", fontSize: 15, bold: true, color: "FFFFFF"
       });
       const bulletText = t.bullets.map(b => "• " + b).join("\n\n");
       s.addText(bulletText, {
-        x: x + 0.4, y: 3.6, w: 2.95, h: 2.8,
-        fontFace: "Arial", fontSize: 12, color: "9AB4A5", lineSpacing: 18
+        x: x + 0.35, y: 3.4, w: cardW - 0.7, h: 2.9,
+        fontFace: "Arial", fontSize: 11.5, color: "9AB4A5", lineSpacing: 16
       });
     });
   }
@@ -384,39 +389,40 @@ async function buildHackdayPresentation() {
     s.background = { color: BG };
     addSlideHeader(s, "05. Market & Business Potential", "Uncontested Category: Voice-First Accessible Digital Chess", "F0C040");
 
+    const colW = 5.65;
     // Left Box: Market Metrics
     s.addShape("roundRect", {
-      x: 0.8, y: 1.9, w: 5.6, h: 4.8,
+      x: 0.8, y: 1.75, w: colW, h: 4.8,
       fill: { color: CARD_BG },
       line: { color: CARD_BORDER, width: 1 },
       rectRadius: 0.15
     });
-    s.addImage({ data: icons.trendingUp("#F0C040"), x: 1.2, y: 2.3, w: 0.5, h: 0.5 });
+    s.addImage({ data: icons.trendingUp("#F0C040"), x: 1.15, y: 2.1, w: 0.45, h: 0.45 });
     s.addText("Market Size & Opportunity", {
-      x: 1.8, y: 2.35, w: 4.2, h: 0.4,
-      fontFace: "Arial", fontSize: 18, bold: true, color: "FFFFFF"
+      x: 1.75, y: 2.15, w: colW - 1.1, h: 0.4,
+      fontFace: "Arial", fontSize: 17, bold: true, color: "FFFFFF"
     });
     s.addText(
       "• $5.7B Global Chess Industry: Rapid expansion fueled by streaming, youth adoption, and scholastic programs.\n\n" +
       "• 285M Visually Impaired Population: Completely excluded from competitive online chess due to visual interface lock-in.\n\n" +
       "• Category Creation: Neither Chess.com nor Lichess offer conversational hands-free voice gameplay today.",
       {
-        x: 1.2, y: 3.0, w: 4.8, h: 3.4,
-        fontFace: "Arial", fontSize: 13, color: "9AB4A5", lineSpacing: 20
+        x: 1.15, y: 2.8, w: colW - 0.7, h: 3.4,
+        fontFace: "Arial", fontSize: 12.5, color: "9AB4A5", lineSpacing: 18
       }
     );
 
     // Right Box: Revenue Models
     s.addShape("roundRect", {
-      x: 6.7, y: 1.9, w: 5.8, h: 4.8,
+      x: 6.85, y: 1.75, w: colW, h: 4.8,
       fill: { color: CARD_BG },
       line: { color: CARD_BORDER, width: 1 },
       rectRadius: 0.15
     });
-    s.addImage({ data: icons.layers("#3ECF8E"), x: 7.1, y: 2.3, w: 0.5, h: 0.5 });
+    s.addImage({ data: icons.layers("#3ECF8E"), x: 7.2, y: 2.1, w: 0.45, h: 0.45 });
     s.addText("Sustainable Revenue Streams", {
-      x: 7.7, y: 2.35, w: 4.4, h: 0.4,
-      fontFace: "Arial", fontSize: 18, bold: true, color: "FFFFFF"
+      x: 7.8, y: 2.15, w: colW - 1.1, h: 0.4,
+      fontFace: "Arial", fontSize: 17, bold: true, color: "FFFFFF"
     });
     s.addText(
       "1. Consumer Freemium (B2C)\n" +
@@ -428,8 +434,8 @@ async function buildHackdayPresentation() {
       "3. Voice Agent API Licensing\n" +
       "   • Modular SDK for third-party chess software.",
       {
-        x: 7.1, y: 3.0, w: 5.0, h: 3.4,
-        fontFace: "Arial", fontSize: 13, color: "9AB4A5", lineSpacing: 18
+        x: 7.2, y: 2.8, w: colW - 0.7, h: 3.4,
+        fontFace: "Arial", fontSize: 12, color: "9AB4A5", lineSpacing: 17
       }
     );
   }
@@ -444,7 +450,7 @@ async function buildHackdayPresentation() {
       {
         phase: "PHASE 1 (TODAY)",
         title: "Autonomous AI Coach",
-        bullets: "Full conversational chess companion with AssemblyAI voice engine, Stockfish 16 WASM, blitz clocks, and 337 passing unit tests."
+        bullets: "Full conversational chess companion with AssemblyAI voice engine, Stockfish 16 WASM, blitz clocks, and 335 passing unit tests."
       },
       {
         phase: "PHASE 2 (Q4 2026)",
@@ -453,30 +459,32 @@ async function buildHackdayPresentation() {
       },
       {
         phase: "PHASE 3 (2027)",
-        title: "Hardware & Multilingual Scale",
+        title: "Hardware & Scale",
         bullets: "Bluetooth electronic chess board sync (DGT, Millennium), haptic move feedback, and multilingual IBCA speech models in 8 languages."
       }
     ];
 
+    const cardW = 3.65;
+    const gap = 0.38;
     phases.forEach((p, i) => {
-      const x = 0.8 + i * 3.95;
+      const x = 0.8 + i * (cardW + gap);
       s.addShape("roundRect", {
-        x, y: 1.9, w: 3.75, h: 4.8,
+        x, y: 1.75, w: cardW, h: 4.8,
         fill: { color: CARD_BG },
         line: { color: CARD_BORDER, width: 1 },
         rectRadius: 0.15
       });
       s.addText(p.phase, {
-        x: x + 0.4, y: 2.3, w: 2.95, h: 0.3,
+        x: x + 0.35, y: 2.1, w: cardW - 0.7, h: 0.3,
         fontFace: "Arial", fontSize: 11, bold: true, color: "3ECF8E"
       });
       s.addText(p.title, {
-        x: x + 0.4, y: 2.7, w: 2.95, h: 0.7,
-        fontFace: "Arial", fontSize: 17, bold: true, color: "FFFFFF"
+        x: x + 0.35, y: 2.5, w: cardW - 0.7, h: 0.6,
+        fontFace: "Arial", fontSize: 16, bold: true, color: "FFFFFF"
       });
       s.addText(p.bullets, {
-        x: x + 0.4, y: 3.6, w: 2.95, h: 2.8,
-        fontFace: "Arial", fontSize: 13, color: "9AB4A5", lineSpacing: 18
+        x: x + 0.35, y: 3.3, w: cardW - 0.7, h: 2.8,
+        fontFace: "Arial", fontSize: 12.5, color: "9AB4A5", lineSpacing: 18
       });
     });
   }
@@ -490,7 +498,7 @@ async function buildHackdayPresentation() {
     const nextSteps = [
       {
         icon: icons.mic("#3ECF8E"),
-        title: "1. Real-Time Voice-to-Voice Multiplayer",
+        title: "1. Voice-to-Voice Multiplayer",
         desc: "Pair two blind players in a shared voice channel where both players' spoken moves and clock sounds are broadcast and verified in sub-second real time."
       },
       {
@@ -500,35 +508,37 @@ async function buildHackdayPresentation() {
       },
       {
         icon: icons.shieldCheck("#5BA3F5"),
-        title: "3. IBCA Certified Tournament Arbiter Mode",
+        title: "3. IBCA Certified Tournament Arbiter",
         desc: "Digital adjudication engine generating FIDE-compliant PGN score-sheets with automated dispute playback for blind chess tournament organizers."
       },
       {
         icon: icons.rocket("#3ECF8E"),
-        title: "4. Native iOS & Android Packaged Apps",
+        title: "4. Native iOS & Android Apps",
         desc: "Package the Web Audio and AssemblyAI pipeline into native mobile apps utilizing iOS CoreAudio and Android AudioTrack for maximum battery efficiency."
       }
     ];
 
+    const boxW = 5.65;
+    const boxH = 2.25;
     nextSteps.forEach((n, i) => {
       const col = i % 2;
       const row = Math.floor(i / 2);
-      const x = 0.8 + col * 5.9;
-      const y = 1.9 + row * 2.45;
+      const x = 0.8 + col * (boxW + 0.4);
+      const y = 1.75 + row * (boxH + 0.3);
       s.addShape("roundRect", {
-        x, y, w: 5.65, h: 2.25,
+        x, y, w: boxW, h: boxH,
         fill: { color: CARD_BG },
         line: { color: CARD_BORDER, width: 1 },
         rectRadius: 0.15
       });
-      s.addImage({ data: n.icon, x: x + 0.35, y: y + 0.35, w: 0.45, h: 0.45 });
+      s.addImage({ data: n.icon, x: x + 0.35, y: y + 0.3, w: 0.45, h: 0.45 });
       s.addText(n.title, {
-        x: x + 0.95, y: y + 0.3, w: 4.4, h: 0.4,
-        fontFace: "Arial", fontSize: 15, bold: true, color: "FFFFFF"
+        x: x + 0.95, y: y + 0.25, w: boxW - 1.1, h: 0.35,
+        fontFace: "Arial", fontSize: 14.5, bold: true, color: "FFFFFF"
       });
       s.addText(n.desc, {
-        x: x + 0.35, y: y + 0.9, w: 4.95, h: 1.15,
-        fontFace: "Arial", fontSize: 12, color: "9AB4A5", lineSpacing: 17
+        x: x + 0.35, y: y + 0.85, w: boxW - 0.7, h: 1.25,
+        fontFace: "Arial", fontSize: 11.5, color: "9AB4A5", lineSpacing: 16
       });
     });
   }
@@ -537,7 +547,7 @@ async function buildHackdayPresentation() {
   const outPath2 = path.join(__dirname, "../public/VoiceChessmate_HACKDAY_1.0.pptx");
   await pptx.writeFile({ fileName: outPath1 });
   fs.copyFileSync(outPath1, outPath2);
-  console.log("HACKDAY 1.0 PPTX generated:", outPath1);
+  console.log("HACKDAY 1.0 PPTX generated (Widescreen 16:9):", outPath1);
 }
 
 // -------------------------------------------------------------
@@ -545,7 +555,8 @@ async function buildHackdayPresentation() {
 // -------------------------------------------------------------
 async function buildHackdevengersPresentation() {
   const pptx = new pptxgen();
-  pptx.layout = "LAYOUT_16x9";
+  pptx.defineLayout({ name: "WIDESCREEN_16_9", width: 13.333, height: 7.5 });
+  pptx.layout = "WIDESCREEN_16_9";
   pptx.title = "VoiceChessmate - Hackdevengers 2.0";
   pptx.author = "VoiceChessmate Team";
 
@@ -558,22 +569,22 @@ async function buildHackdevengersPresentation() {
     const s = pptx.addSlide();
     s.background = { color: BG };
 
-    s.addImage({ data: icons.chessKnight("#3ECF8E"), x: 6.1, y: 1.5, w: 1.1, h: 1.1 });
+    s.addImage({ data: icons.chessKnight("#3ECF8E"), x: 6.16, y: 1.5, w: 1.0, h: 1.0 });
     s.addText("VoiceChessmate", {
-      x: 0.8, y: 2.8, w: 11.7, h: 1.0,
-      fontFace: "Arial", fontSize: 44, bold: true, color: "FFFFFF", align: "center"
+      x: 0.8, y: 2.7, w: 11.7, h: 0.9,
+      fontFace: "Arial", fontSize: 42, bold: true, color: "FFFFFF", align: "center"
     });
     s.addText("Where Eyes Are Optional, But Victory Isn't.", {
-      x: 0.8, y: 3.9, w: 11.7, h: 0.5,
-      fontFace: "Arial", fontSize: 20, color: "3ECF8E", align: "center"
+      x: 0.8, y: 3.75, w: 11.7, h: 0.5,
+      fontFace: "Arial", fontSize: 19, color: "3ECF8E", align: "center"
     });
     s.addText("An Autonomous, Conversational Voice Chess Companion for 285M Visually Impaired Players", {
-      x: 0.8, y: 4.6, w: 11.7, h: 0.5,
-      fontFace: "Arial", fontSize: 14, color: "8FAFA0", align: "center"
+      x: 0.8, y: 4.45, w: 11.7, h: 0.45,
+      fontFace: "Arial", fontSize: 13.5, color: "8FAFA0", align: "center"
     });
 
     s.addText("Hackdevengers 2.0 Project Submission | Powered by AssemblyAI Voice Agent API", {
-      x: 0.8, y: 6.2, w: 11.7, h: 0.4,
+      x: 0.8, y: 6.1, w: 11.7, h: 0.4,
       fontFace: "Arial", fontSize: 11, color: "5B7A6C", align: "center"
     });
   }
@@ -587,12 +598,12 @@ async function buildHackdevengersPresentation() {
     const issues = [
       {
         icon: icons.eyeOff("#F05060"),
-        title: "Extreme Visual Dependency",
+        title: "Visual Dependency",
         body: "Modern chess sites require continuous 2D spatial eye tracking. Blind players cannot compete in standard time controls (Rapid/Blitz) due to interface lag."
       },
       {
         icon: icons.clock("#F0C040"),
-        title: "Crippling Screen Reader Latency",
+        title: "Screen Reader Latency",
         body: "Standard screen readers traverse chessboard tables square by square. A 6-10 second move latency guarantees immediate clock flag-falls in timed play."
       },
       {
@@ -602,22 +613,24 @@ async function buildHackdevengersPresentation() {
       }
     ];
 
+    const cardW = 3.65;
+    const gap = 0.38;
     issues.forEach((it, i) => {
-      const x = 0.8 + i * 3.95;
+      const x = 0.8 + i * (cardW + gap);
       s.addShape("roundRect", {
-        x, y: 1.9, w: 3.75, h: 4.8,
+        x, y: 1.75, w: cardW, h: 4.8,
         fill: { color: CARD_BG },
         line: { color: CARD_BORDER, width: 1 },
         rectRadius: 0.15
       });
-      s.addImage({ data: it.icon, x: x + 0.4, y: 2.3, w: 0.55, h: 0.55 });
+      s.addImage({ data: it.icon, x: x + 0.35, y: 2.1, w: 0.5, h: 0.5 });
       s.addText(it.title, {
-        x: x + 0.4, y: 3.1, w: 2.95, h: 0.7,
+        x: x + 0.35, y: 2.8, w: cardW - 0.7, h: 0.6,
         fontFace: "Arial", fontSize: 16, bold: true, color: "FFFFFF"
       });
       s.addText(it.body, {
-        x: x + 0.4, y: 4.0, w: 2.95, h: 2.3,
-        fontFace: "Arial", fontSize: 13, color: "9AB4A5", lineSpacing: 18
+        x: x + 0.35, y: 3.6, w: cardW - 0.7, h: 2.6,
+        fontFace: "Arial", fontSize: 12.5, color: "9AB4A5", lineSpacing: 18
       });
     });
   }
@@ -628,16 +641,17 @@ async function buildHackdevengersPresentation() {
     s.background = { color: BG };
     addSlideHeader(s, "The Experience", "Hands-Free, Eyes-Free Conversational Gameplay", "3ECF8E");
 
+    const leftW = 5.65;
     s.addShape("roundRect", {
-      x: 0.8, y: 1.9, w: 5.7, h: 4.8,
+      x: 0.8, y: 1.75, w: leftW, h: 4.8,
       fill: { color: CARD_BG },
       line: { color: CARD_BORDER, width: 1 },
       rectRadius: 0.15
     });
-    s.addImage({ data: icons.mic("#3ECF8E"), x: 1.2, y: 2.3, w: 0.5, h: 0.5 });
+    s.addImage({ data: icons.mic("#3ECF8E"), x: 1.15, y: 2.1, w: 0.5, h: 0.5 });
     s.addText("Natural Dialogue Flow", {
-      x: 1.8, y: 2.35, w: 4.2, h: 0.4,
-      fontFace: "Arial", fontSize: 18, bold: true, color: "FFFFFF"
+      x: 1.8, y: 2.15, w: leftW - 1.2, h: 0.4,
+      fontFace: "Arial", fontSize: 17, bold: true, color: "FFFFFF"
     });
     s.addText(
       "PLAYER:  'Knight to Felix 3'\n" +
@@ -648,11 +662,13 @@ async function buildHackdevengersPresentation() {
       "• Single-Touch Auditory Hotkeys: Instant board audit (D), threats (T), and tactics (G).\n" +
       "• FIDE/IBCA Phonetics: Eliminates ambiguous rhymes (B/C/D/E/G).",
       {
-        x: 1.2, y: 3.0, w: 4.9, h: 3.4,
-        fontFace: "Arial", fontSize: 13, color: "9AB4A5", lineSpacing: 18
+        x: 1.15, y: 2.8, w: leftW - 0.7, h: 3.4,
+        fontFace: "Arial", fontSize: 12.5, color: "9AB4A5", lineSpacing: 17
       }
     );
 
+    const rightW = 5.65;
+    const rightX = 6.85;
     const cards = [
       { icon: icons.volume("#3ECF8E"), title: "Chess.com Acoustics", desc: "Realistic wooden impact synthesis for moves, captures, checks, and game-over fanfares." },
       { icon: icons.clock("#F0C040"), title: "Audio Chess Clocks", desc: "Full Bullet, Blitz, and Rapid modes with audio countdown alerts and flag-fall detection." },
@@ -660,21 +676,21 @@ async function buildHackdevengersPresentation() {
     ];
 
     cards.forEach((c, i) => {
-      const y = 1.9 + i * 1.65;
+      const y = 1.75 + i * 1.65;
       s.addShape("roundRect", {
-        x: 6.8, y, w: 5.7, h: 1.45,
+        x: rightX, y, w: rightW, h: 1.5,
         fill: { color: CARD_BG },
         line: { color: CARD_BORDER, width: 1 },
         rectRadius: 0.15
       });
-      s.addImage({ data: c.icon, x: 7.1, y: y + 0.35, w: 0.45, h: 0.45 });
+      s.addImage({ data: c.icon, x: rightX + 0.3, y: y + 0.35, w: 0.45, h: 0.45 });
       s.addText(c.title, {
-        x: 7.7, y: y + 0.25, w: 4.5, h: 0.35,
+        x: rightX + 0.9, y: y + 0.25, w: rightW - 1.1, h: 0.35,
         fontFace: "Arial", fontSize: 14, bold: true, color: "FFFFFF"
       });
       s.addText(c.desc, {
-        x: 7.7, y: y + 0.65, w: 4.5, h: 0.65,
-        fontFace: "Arial", fontSize: 12, color: "9AB4A5"
+        x: rightX + 0.9, y: y + 0.65, w: rightW - 1.1, h: 0.7,
+        fontFace: "Arial", fontSize: 11.5, color: "9AB4A5", lineSpacing: 15
       });
     });
   }
@@ -703,30 +719,32 @@ async function buildHackdevengersPresentation() {
       },
       {
         step: "STEP 4",
-        title: "Dual AudioContext Output",
+        title: "Dual AudioContext",
         body: "Native 48kHz AudioBufferSourceNode playback fixes Linux/PulseAudio muting and ensures zero audio drops."
       }
     ];
 
+    const cardW = 2.75;
+    const gap = 0.24;
     pipelineSteps.forEach((st, i) => {
-      const x = 0.8 + i * 2.95;
+      const x = 0.8 + i * (cardW + gap);
       s.addShape("roundRect", {
-        x, y: 1.9, w: 2.8, h: 4.8,
+        x, y: 1.75, w: cardW, h: 4.8,
         fill: { color: CARD_BG },
         line: { color: CARD_BORDER, width: 1 },
         rectRadius: 0.15
       });
       s.addText(st.step, {
-        x: x + 0.3, y: 2.3, w: 2.2, h: 0.3,
+        x: x + 0.25, y: 2.1, w: cardW - 0.5, h: 0.3,
         fontFace: "Arial", fontSize: 10, bold: true, color: "3ECF8E"
       });
       s.addText(st.title, {
-        x: x + 0.3, y: 2.7, w: 2.2, h: 0.7,
-        fontFace: "Arial", fontSize: 15, bold: true, color: "FFFFFF"
+        x: x + 0.25, y: 2.55, w: cardW - 0.5, h: 0.6,
+        fontFace: "Arial", fontSize: 14.5, bold: true, color: "FFFFFF"
       });
       s.addText(st.body, {
-        x: x + 0.3, y: 3.6, w: 2.2, h: 2.8,
-        fontFace: "Arial", fontSize: 12, color: "9AB4A5", lineSpacing: 17
+        x: x + 0.25, y: 3.35, w: cardW - 0.5, h: 2.9,
+        fontFace: "Arial", fontSize: 11.5, color: "9AB4A5", lineSpacing: 16
       });
     });
   }
@@ -737,15 +755,16 @@ async function buildHackdevengersPresentation() {
     s.background = { color: BG };
     addSlideHeader(s, "Accessibility Standard", "FIDE / IBCA Rule 2.1 & Spatial Audio Navigation", "5BA3F5");
 
+    const colW = 5.65;
     // Left Table: IBCA Coordinate Map
     s.addShape("roundRect", {
-      x: 0.8, y: 1.9, w: 5.7, h: 4.8,
+      x: 0.8, y: 1.75, w: colW, h: 4.8,
       fill: { color: CARD_BG },
       line: { color: CARD_BORDER, width: 1 },
       rectRadius: 0.15
     });
     s.addText("Official IBCA Phonetic Coordinate Standard", {
-      x: 1.2, y: 2.2, w: 5.0, h: 0.4,
+      x: 1.15, y: 2.1, w: colW - 0.7, h: 0.4,
       fontFace: "Arial", fontSize: 15, bold: true, color: "FFFFFF"
     });
     s.addText(
@@ -758,21 +777,21 @@ async function buildHackdevengersPresentation() {
       "File G  →  Gustav   ('Knight Gustav 1 to Felix 3')\n" +
       "File H  →  Hector   ('Rook Hector 1 to Hector 3')",
       {
-        x: 1.2, y: 2.8, w: 5.0, h: 3.6,
-        fontFace: "Courier New", fontSize: 12, color: "3ECF8E", lineSpacing: 18
+        x: 1.15, y: 2.7, w: colW - 0.7, h: 3.5,
+        fontFace: "Courier New", fontSize: 11.5, color: "3ECF8E", lineSpacing: 17
       }
     );
 
     // Right Box: Spatial Earcons
     s.addShape("roundRect", {
-      x: 6.8, y: 1.9, w: 5.7, h: 4.8,
+      x: 6.85, y: 1.75, w: colW, h: 4.8,
       fill: { color: CARD_BG },
       line: { color: CARD_BORDER, width: 1 },
       rectRadius: 0.15
     });
-    s.addImage({ data: icons.volume("#5BA3F5"), x: 7.2, y: 2.3, w: 0.5, h: 0.5 });
+    s.addImage({ data: icons.volume("#5BA3F5"), x: 7.2, y: 2.1, w: 0.45, h: 0.45 });
     s.addText("Spatial Earcon Sound Design", {
-      x: 7.8, y: 2.35, w: 4.3, h: 0.4,
+      x: 7.8, y: 2.15, w: colW - 1.1, h: 0.4,
       fontFace: "Arial", fontSize: 16, bold: true, color: "FFFFFF"
     });
     s.addText(
@@ -781,8 +800,8 @@ async function buildHackdevengersPresentation() {
       "• Acoustic Piece Timbres: Pawns (sine), Knights (triangle), Rooks/Queens (sawtooth).\n\n" +
       "Result: Sighted players visually parse a move in 200ms; VoiceChessmate's spatial audio delivers the move in ~260ms — 10x faster than speech.",
       {
-        x: 7.2, y: 3.0, w: 4.9, h: 3.4,
-        fontFace: "Arial", fontSize: 12, color: "9AB4A5", lineSpacing: 18
+        x: 7.2, y: 2.8, w: colW - 0.7, h: 3.4,
+        fontFace: "Arial", fontSize: 11.5, color: "9AB4A5", lineSpacing: 17
       }
     );
   }
@@ -791,11 +810,11 @@ async function buildHackdevengersPresentation() {
   {
     const s = pptx.addSlide();
     s.background = { color: BG };
-    addSlideHeader(s, "Verification & Quality", "Production Architecture & 337 Passing Automated Tests", "3ECF8E");
+    addSlideHeader(s, "Verification & Quality", "Production Architecture & 335 Passing Automated Tests", "3ECF8E");
 
     const testCards = [
       {
-        title: "337 Passing Tests",
+        title: "335 Passing Tests",
         stat: "100%",
         statLabel: "Vitest Suite Passing",
         desc: "Exhaustive automated tests verifying chess rules, move legalities, edge-case pawn promotions, and Blitz clock flag-falls."
@@ -814,49 +833,52 @@ async function buildHackdevengersPresentation() {
       }
     ];
 
+    const cardW = 3.65;
+    const gap = 0.38;
     testCards.forEach((tc, i) => {
-      const x = 0.8 + i * 3.95;
+      const x = 0.8 + i * (cardW + gap);
       s.addShape("roundRect", {
-        x, y: 1.9, w: 3.75, h: 4.8,
+        x, y: 1.75, w: cardW, h: 4.8,
         fill: { color: CARD_BG },
         line: { color: CARD_BORDER, width: 1 },
         rectRadius: 0.15
       });
       s.addText(tc.title, {
-        x: x + 0.4, y: 2.3, w: 2.95, h: 0.4,
+        x: x + 0.35, y: 2.1, w: cardW - 0.7, h: 0.4,
         fontFace: "Arial", fontSize: 16, bold: true, color: "FFFFFF"
       });
       s.addText(tc.stat, {
-        x: x + 0.4, y: 2.9, w: 2.95, h: 0.6,
-        fontFace: "Arial", fontSize: 32, bold: true, color: "3ECF8E"
+        x: x + 0.35, y: 2.7, w: cardW - 0.7, h: 0.6,
+        fontFace: "Arial", fontSize: 30, bold: true, color: "3ECF8E"
       });
       s.addText(tc.statLabel, {
-        x: x + 0.4, y: 3.55, w: 2.95, h: 0.3,
+        x: x + 0.35, y: 3.35, w: cardW - 0.7, h: 0.3,
         fontFace: "Arial", fontSize: 11, color: "6E8A7B"
       });
       s.addText(tc.desc, {
-        x: x + 0.4, y: 4.1, w: 2.95, h: 2.3,
-        fontFace: "Arial", fontSize: 12, color: "9AB4A5", lineSpacing: 17
+        x: x + 0.35, y: 3.85, w: cardW - 0.7, h: 2.4,
+        fontFace: "Arial", fontSize: 11.5, color: "9AB4A5", lineSpacing: 16
       });
     });
   }
 
-  // SLIDE 7: Market Potential & Target Users
+  // SLIDE 7: Commercial Potential & Target Users
   {
     const s = pptx.addSlide();
     s.background = { color: BG };
     addSlideHeader(s, "Commercial Potential", "High Social Impact Meets a Scalable Commercial Opportunity", "F0C040");
 
+    const colW = 5.65;
     s.addShape("roundRect", {
-      x: 0.8, y: 1.9, w: 5.7, h: 4.8,
+      x: 0.8, y: 1.75, w: colW, h: 4.8,
       fill: { color: CARD_BG },
       line: { color: CARD_BORDER, width: 1 },
       rectRadius: 0.15
     });
-    s.addImage({ data: icons.trendingUp("#F0C040"), x: 1.2, y: 2.3, w: 0.5, h: 0.5 });
+    s.addImage({ data: icons.trendingUp("#F0C040"), x: 1.15, y: 2.1, w: 0.45, h: 0.45 });
     s.addText("Market Scale & Demographics", {
-      x: 1.8, y: 2.35, w: 4.2, h: 0.4,
-      fontFace: "Arial", fontSize: 17, bold: true, color: "FFFFFF"
+      x: 1.75, y: 2.15, w: colW - 1.1, h: 0.4,
+      fontFace: "Arial", fontSize: 16.5, bold: true, color: "FFFFFF"
     });
     s.addText(
       "• 285 Million Visually Impaired Worldwide:\n" +
@@ -866,21 +888,21 @@ async function buildHackdevengersPresentation() {
       "• First-Mover Advantage:\n" +
       "  No competitive voice chess engine exists on Chess.com or Lichess.",
       {
-        x: 1.2, y: 3.0, w: 4.9, h: 3.4,
-        fontFace: "Arial", fontSize: 12, color: "9AB4A5", lineSpacing: 18
+        x: 1.15, y: 2.8, w: colW - 0.7, h: 3.4,
+        fontFace: "Arial", fontSize: 12, color: "9AB4A5", lineSpacing: 17
       }
     );
 
     s.addShape("roundRect", {
-      x: 6.8, y: 1.9, w: 5.7, h: 4.8,
+      x: 6.85, y: 1.75, w: colW, h: 4.8,
       fill: { color: CARD_BG },
       line: { color: CARD_BORDER, width: 1 },
       rectRadius: 0.15
     });
-    s.addImage({ data: icons.layers("#3ECF8E"), x: 7.2, y: 2.3, w: 0.5, h: 0.5 });
+    s.addImage({ data: icons.layers("#3ECF8E"), x: 7.2, y: 2.1, w: 0.45, h: 0.45 });
     s.addText("Business Model & Distribution", {
-      x: 7.8, y: 2.35, w: 4.3, h: 0.4,
-      fontFace: "Arial", fontSize: 17, bold: true, color: "FFFFFF"
+      x: 7.8, y: 2.15, w: colW - 1.1, h: 0.4,
+      fontFace: "Arial", fontSize: 16.5, bold: true, color: "FFFFFF"
     });
     s.addText(
       "1. Free Core Tier (Universal Accessibility):\n" +
@@ -890,13 +912,13 @@ async function buildHackdevengersPresentation() {
       "3. Institutional & Federation Partnerships:\n" +
       "   Official tournament client for IBCA and regional blind sports associations.",
       {
-        x: 7.2, y: 3.0, w: 4.9, h: 3.4,
-        fontFace: "Arial", fontSize: 12, color: "9AB4A5", lineSpacing: 18
+        x: 7.2, y: 2.8, w: colW - 0.7, h: 3.4,
+        fontFace: "Arial", fontSize: 12, color: "9AB4A5", lineSpacing: 17
       }
     );
   }
 
-  // SLIDE 8: Roadmap & Future Vision
+  // SLIDE 8: Roadmap & Vision
   {
     const s = pptx.addSlide();
     s.background = { color: BG };
@@ -925,25 +947,27 @@ async function buildHackdevengersPresentation() {
       }
     ];
 
+    const boxW = 5.65;
+    const boxH = 2.25;
     roadmapItems.forEach((ri, i) => {
       const col = i % 2;
       const row = Math.floor(i / 2);
-      const x = 0.8 + col * 5.9;
-      const y = 1.9 + row * 2.45;
+      const x = 0.8 + col * (boxW + 0.4);
+      const y = 1.75 + row * (boxH + 0.3);
       s.addShape("roundRect", {
-        x, y, w: 5.65, h: 2.25,
+        x, y, w: boxW, h: boxH,
         fill: { color: CARD_BG },
         line: { color: CARD_BORDER, width: 1 },
         rectRadius: 0.15
       });
-      s.addImage({ data: ri.icon, x: x + 0.35, y: y + 0.35, w: 0.45, h: 0.45 });
+      s.addImage({ data: ri.icon, x: x + 0.35, y: y + 0.3, w: 0.45, h: 0.45 });
       s.addText(ri.title, {
-        x: x + 0.95, y: y + 0.3, w: 4.4, h: 0.4,
-        fontFace: "Arial", fontSize: 15, bold: true, color: "FFFFFF"
+        x: x + 0.95, y: y + 0.25, w: boxW - 1.1, h: 0.35,
+        fontFace: "Arial", fontSize: 14.5, bold: true, color: "FFFFFF"
       });
       s.addText(ri.desc, {
-        x: x + 0.35, y: y + 0.9, w: 4.95, h: 1.15,
-        fontFace: "Arial", fontSize: 12, color: "9AB4A5", lineSpacing: 17
+        x: x + 0.35, y: y + 0.85, w: boxW - 0.7, h: 1.25,
+        fontFace: "Arial", fontSize: 11.5, color: "9AB4A5", lineSpacing: 16
       });
     });
   }
@@ -952,7 +976,7 @@ async function buildHackdevengersPresentation() {
   const outPath2 = path.join(__dirname, "../public/VoiceChessmate_Hackdevengers_2.0.pptx");
   await pptx.writeFile({ fileName: outPath1 });
   fs.copyFileSync(outPath1, outPath2);
-  console.log("Hackdevengers 2.0 PPTX generated:", outPath1);
+  console.log("Hackdevengers 2.0 PPTX generated (Widescreen 16:9):", outPath1);
 }
 
 async function run() {
