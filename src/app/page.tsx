@@ -171,7 +171,7 @@ export default function Home() {
         className="flex-1 overflow-y-auto lg:overflow-hidden mx-auto w-full max-w-screen-2xl flex flex-col lg:flex-row min-h-0"
       >
         {/* ── Left: scrollable voice + transcript ── */}
-        <div className="flex flex-col gap-3 px-3 pt-3 pb-3 lg:px-4 lg:pt-4 lg:pb-4 lg:w-[380px] xl:w-[420px] flex-shrink-0 lg:border-r lg:border-border overflow-y-auto lg:h-full lg:max-h-full">
+        <div className="flex flex-col gap-3 px-3 pt-3 pb-8 lg:px-4 lg:pt-4 lg:pb-8 w-full lg:w-[400px] xl:w-[440px] shrink-0 lg:border-r lg:border-border overflow-y-auto min-h-0 h-full max-h-full overscroll-contain">
           {!coach.isVoiceSupported && (
             <p role="alert" className="panel w-full border-danger p-3 text-sm flex-shrink-0">
               Voice input isn&apos;t available in this browser. Use the text box below.

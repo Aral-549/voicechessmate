@@ -18,7 +18,10 @@ export function TranscriptLog({ entries, onClear }: TranscriptLogProps) {
   // Auto-scroll to bottom on new entries
   useEffect(() => {
     const node = scrollRef.current;
-    if (node) node.scrollTop = node.scrollHeight;
+    if (node) {
+      const lastChild = node.lastElementChild;
+      lastChild?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
   }, [entries.length]);
 
   const filteredEntries = useMemo(() => {
@@ -53,7 +56,7 @@ export function TranscriptLog({ entries, onClear }: TranscriptLogProps) {
   };
 
   return (
-    <div className="panel flex h-80 flex-col overflow-hidden w-full border-border/80 shadow-md">
+    <div className="panel flex flex-col w-full border-border/80 shadow-md shrink-0">
       {/* Header with Title & Action Tools */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 px-4 py-2.5 bg-bg-raised">
         <div className="flex items-center gap-2">
@@ -130,7 +133,7 @@ export function TranscriptLog({ entries, onClear }: TranscriptLogProps) {
       </div>
 
       {/* Message List */}
-      <ol ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4 scrollbar-thin">
+      <ol ref={scrollRef} className="space-y-3 p-3 sm:p-4">
         {filteredEntries.length === 0 ? (
           <li className="flex items-center justify-center h-full text-xs text-fg-muted italic">
             No matching messages.
