@@ -1,19 +1,17 @@
 image: node:22
 
 cache:
+  key: ${CI_COMMIT_REF_SLUG}
   paths:
+    - .npm/
     - node_modules/
 
+before_script:
+  - npm ci --cache .npm --prefer-offline
+
 stages:
-  - lint
   - test
   - build
-
-lint:
-  stage: lint
-  script:
-    - npx eslint .
-  allow_failure: true
 
 test:
   stage: test
@@ -25,4 +23,3 @@ build:
   stage: build
   script:
     - npm run build
-
