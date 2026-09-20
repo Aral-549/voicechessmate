@@ -163,18 +163,17 @@ export default function Home() {
       </header>
 
       {/*
-        Main: fills remaining viewport height exactly.
-        Desktop: two columns side-by-side.
-        Mobile: stacked — voice controls first (screen-reader friendly), board second.
+        Left: scrollable panel for voice controls + transcript
+        Right: fixed, non-scrollable — board sized to perfectly fill remaining height
       */}
       <main
         id="main-content"
-        className="flex-1 overflow-hidden mx-auto w-full max-w-screen-2xl flex flex-col lg:flex-row gap-0"
+        className="flex-1 overflow-y-auto lg:overflow-hidden mx-auto w-full max-w-screen-2xl flex flex-col lg:flex-row min-h-0"
       >
-        {/* ── Left / Top: voice controls + transcript ── */}
-        <div className="flex flex-col gap-3 px-3 pt-3 pb-2 lg:px-5 lg:pt-5 lg:pb-5 lg:w-[400px] xl:w-[440px] flex-shrink-0 lg:border-r lg:border-border lg:overflow-y-auto">
+        {/* ── Left: scrollable voice + transcript ── */}
+        <div className="flex flex-col gap-3 px-3 pt-3 pb-3 lg:px-4 lg:pt-4 lg:pb-4 lg:w-[380px] xl:w-[420px] flex-shrink-0 lg:border-r lg:border-border overflow-y-auto lg:h-full lg:max-h-full">
           {!coach.isVoiceSupported && (
-            <p role="alert" className="panel w-full border-danger p-3 text-sm">
+            <p role="alert" className="panel w-full border-danger p-3 text-sm flex-shrink-0">
               Voice input isn&apos;t available in this browser. Use the text box below.
             </p>
           )}
@@ -201,16 +200,13 @@ export default function Home() {
             onRepeat={coach.repeatLast}
           />
           <TextFallbackForm onSubmit={coach.submitTextFallback} emphasized={!coach.isVoiceSupported} />
-
-          {/* Transcript scrolls inside its own container */}
-          <div className="flex-1 min-h-0 overflow-hidden">
-            <TranscriptLog entries={coach.entries} />
-          </div>
+          <TranscriptLog entries={coach.entries} />
         </div>
 
-        {/* ── Right / Bottom: chess board fills remaining space ── */}
-        <div className="flex-1 flex flex-col items-center justify-start overflow-y-auto px-3 py-3 lg:px-5 lg:py-5 min-h-0">
-          <div className="w-full max-w-[640px] xl:max-w-[700px]">
+        {/* ── Right: fixed height, no scroll — board fits perfectly ── */}
+        <div className="flex-1 overflow-hidden flex flex-col items-center justify-center p-2 sm:p-3 lg:p-3 min-h-0 h-full">
+          {/* This wrapper constrains the board to the available column height */}
+          <div className="w-full h-full flex flex-col items-center justify-center max-w-[620px] min-h-0">
             <ChessBoardPanel
               fen={coach.fen}
               moveHistory={coach.moveHistory}
@@ -224,7 +220,7 @@ export default function Home() {
               onSelectDifficulty={coach.setDifficulty}
             />
           </div>
-          <p className="mt-3 text-xs text-fg-muted text-center">
+          <p className="flex-shrink-0 mt-1 text-[11px] text-fg-muted text-center">
             Press <span className="font-mono">?</span> for keyboard shortcuts
           </p>
         </div>

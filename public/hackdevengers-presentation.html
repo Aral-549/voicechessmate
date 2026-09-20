@@ -166,6 +166,24 @@
   th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; }
   tr:last-child td { border-bottom: none; }
   td:first-child { font-family: 'JetBrains Mono', monospace; color: var(--accent); font-weight: 600; }
+
+  .svg-icon {
+    width: 1.1em;
+    height: 1.1em;
+    display: inline-block;
+    vertical-align: -0.15em;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .icon-lg {
+    width: 2em;
+    height: 2em;
+    vertical-align: middle;
+    margin-bottom: 8px;
+  }
 </style>
 </head>
 <body>
@@ -176,17 +194,17 @@
 
   <!-- ═══ SLIDE 1 — Title ═══ -->
   <div class="slide active" id="s1">
-    <div class="chess-row">♔ ♟ ♗ ♜ ♕ ♞</div>
+    <div class="chess-row"><svg class="svg-icon" viewBox="0 0 24 24"><path d="m19 21-3-4-2-4 2-5-2-2-4 1-2 3-2 1v5l3 3 2 2h8z"/><path d="M12 9h.01"/></svg></div>
     <div class="tag">Hackdevengers 2.0 · Submission</div>
     <h1><span class="accent">Voice</span>Chessmate</h1>
     <p style="font-size:22px;color:var(--muted);margin:14px 0 36px;font-weight:400;">
       Eyes-free chess through conversational voice AI
     </p>
     <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
-      <span class="pill">🎙️ AssemblyAI Voice Agent</span>
-      <span class="pill">♟️ chess.js</span>
-      <span class="pill">⚡ Next.js 16 · TypeScript</span>
-      <span class="pill">🧪 337 Tests</span>
+      <span class="pill"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg> AssemblyAI Voice Agent</span>
+      <span class="pill"><svg class="svg-icon" viewBox="0 0 24 24"><path d="m19 21-3-4-2-4 2-5-2-2-4 1-2 3-2 1v5l3 3 2 2h8z"/><path d="M12 9h.01"/></svg> chess.js</span>
+      <span class="pill"><svg class="svg-icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Next.js 16 · TypeScript</span>
+      <span class="pill"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M10 2v7.31L4.65 19.3A2 2 0 0 0 6.4 22h11.2a2 2 0 0 0 1.75-2.7L14 9.31V2"/></svg> 337 Tests</span>
     </div>
     <p style="margin-top:40px;font-size:15px;">
       <kbd>→</kbd> &nbsp; arrow keys to navigate &nbsp; <kbd>Space</kbd> &nbsp; next slide
@@ -204,9 +222,9 @@
         <span style="font-size:16px;color:var(--muted);font-style:normal;">— Blind chess player, Reddit r/blind</span>
       </div>
       <ul class="pain">
-        <li><span class="icon">👁️</span><div><strong>Platforms require constant 2D visual tracking.</strong> Blitz and bullet games — with their clock pressure — are physically impossible for blind players.</div></li>
-        <li><span class="icon">🔊</span><div><strong>Screen readers introduce 6–10 seconds of delay per move.</strong> One slow read and the clock flags. That's game over.</div></li>
-        <li><span class="icon">🧩</span><div><strong>No tactical awareness.</strong> No voice feedback for checks, threats, forks, or pins. Just raw coordinate data with zero context.</div></li>
+        <li><span class="icon"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg></span><div><strong>Platforms require constant 2D visual tracking.</strong> Blitz and bullet games — with their clock pressure — are physically impossible for blind players.</div></li>
+        <li><span class="icon"><svg class="svg-icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></span><div><strong>Screen readers introduce 6–10 seconds of delay per move.</strong> One slow read and the clock flags. That's game over.</div></li>
+        <li><span class="icon"><svg class="svg-icon" viewBox="0 0 24 24"><path d="m19 21-3-4-2-4 2-5-2-2-4 1-2 3-2 1v5l3 3 2 2h8z"/><path d="M12 9h.01"/></svg></span><div><strong>No tactical awareness.</strong> No voice feedback for checks, threats, forks, or pins. Just raw coordinate data with zero context.</div></li>
       </ul>
     </div>
   </div>
@@ -254,28 +272,28 @@
       <div class="cols-2" style="margin-top:24px;align-items:start;">
         <div>
           <div class="flow" style="margin-bottom:20px;">
-            <div class="flow-step"><span class="icon">🎤</span><span class="lbl">Mic</span></div>
+            <div class="flow-step"><span class="icon"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></span><span class="lbl">Mic</span></div>
             <span class="flow-arrow">→</span>
-            <div class="flow-step"><span class="icon">🔧</span><span class="lbl">Worklet<br/>24kHz</span></div>
+            <div class="flow-step"><span class="icon"><svg class="svg-icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M9 2v2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 20v2"/><path d="M15 20v2"/><path d="M2 9h2"/><path d="M2 15h2"/></svg></span><span class="lbl">Worklet<br/>24kHz</span></div>
             <span class="flow-arrow">→</span>
-            <div class="flow-step"><span class="icon">🌐</span><span class="lbl">WebSocket<br/>PCM16</span></div>
+            <div class="flow-step"><span class="icon"><svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span><span class="lbl">WebSocket<br/>PCM16</span></div>
             <span class="flow-arrow">→</span>
-            <div class="flow-step"><span class="icon">🤖</span><span class="lbl">AssemblyAI<br/>Agent</span></div>
+            <div class="flow-step"><span class="icon"><svg class="svg-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" x2="8" y1="16" y2="16"/><line x1="16" x2="16" y1="16" y2="16"/></svg></span><span class="lbl">AssemblyAI<br/>Agent</span></div>
             <span class="flow-arrow">→</span>
-            <div class="flow-step"><span class="icon">🔊</span><span class="lbl">Speaker<br/>48kHz</span></div>
+            <div class="flow-step"><span class="icon"><svg class="svg-icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></span><span class="lbl">Speaker<br/>48kHz</span></div>
           </div>
           <div class="card a" style="margin-bottom:14px;">
-            <h3>🎯 Typed Tool Calls</h3>
+            <h3><svg class="svg-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Typed Tool Calls</h3>
             <p style="font-size:14px;">The AssemblyAI agent calls typed tools — <code style="color:var(--accent)">apply_move</code>, <code style="color:var(--accent)">describe_board</code>, <code style="color:var(--accent)">undo_move</code>, <code style="color:var(--accent)">get_legal_moves</code>. Chess is deterministic on our side; the AI handles the language.</p>
           </div>
           <div class="card c">
-            <h3>⚡ Sub-300ms response</h3>
+            <h3><svg class="svg-icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Sub-300ms response</h3>
             <p style="font-size:14px;">PCM16 streams in 25ms chunks. The board updates and sounds play before the coach finishes speaking.</p>
           </div>
         </div>
         <div>
           <div class="card" style="margin-bottom:14px;">
-            <h3>🛠️ The hard audio problem we solved</h3>
+            <h3><svg class="svg-icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M9 2v2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 20v2"/><path d="M15 20v2"/><path d="M2 9h2"/><path d="M2 15h2"/></svg> The hard audio problem we solved</h3>
             <p style="font-size:14px;margin-bottom:12px;">A single AudioContext at forced 24kHz gets <strong>silently muted by Linux PulseAudio</strong>. We solved it with dual contexts:</p>
             <div class="code" style="font-size:12px;padding:12px;">
 <span class="dim">// Mic capture — 24kHz (AssemblyAI requires this)</span>
@@ -286,7 +304,7 @@ speakerCtx = new AudioContext()
 <span class="dim">// → AudioBufferSourceNode auto-resamples</span></div>
           </div>
           <div class="card b">
-            <h3>🧪 337 automated tests</h3>
+            <h3><svg class="svg-icon" viewBox="0 0 24 24"><path d="M10 2v7.31L4.65 19.3A2 2 0 0 0 6.4 22h11.2a2 2 0 0 0 1.75-2.7L14 9.31V2"/></svg> 337 automated tests</h3>
             <p style="font-size:14px;">Chess engine, tool handlers, adversarial stress tests, blitz mode, move earcons — all headless in CI. Because accessibility software can't afford regressions.</p>
           </div>
         </div>
@@ -318,15 +336,15 @@ speakerCtx = new AudioContext()
         </div>
         <div style="display:flex;flex-direction:column;gap:14px;">
           <div class="card a">
-            <h3>🎹 Spatial Audio Earcons</h3>
+            <h3><svg class="svg-icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg> Spatial Audio Earcons</h3>
             <p style="font-size:14px;">Each move plays a stereo-panned tone: file A is far-left, file H is far-right. Rank 1 is low pitch, rank 8 is high. Blind players hear <em>direction</em> as spatial audio.</p>
           </div>
           <div class="card">
-            <h3>⌨️ Full Keyboard Control</h3>
+            <h3><svg class="svg-icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M9 2v2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 20v2"/><path d="M15 20v2"/><path d="M2 9h2"/><path d="M2 15h2"/></svg> Full Keyboard Control</h3>
             <p style="font-size:14px;"><kbd>D</kbd> describe board &nbsp; <kbd>T</kbd> threats &nbsp; <kbd>G</kbd> tactical<br/><kbd>R</kbd> repeat last &nbsp; <kbd>U</kbd> undo &nbsp; <kbd>B</kbd> show/hide board<br/><kbd>?</kbd> shortcuts reference</p>
           </div>
           <div class="card c">
-            <h3>🌗 Accessibility Settings</h3>
+            <h3><svg class="svg-icon" viewBox="0 0 24 24"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg> Accessibility Settings</h3>
             <p style="font-size:14px;">High contrast mode · Font scaling (A- / A+) · Sound cues on/off · Screen reader captions · 4 board themes</p>
           </div>
         </div>
@@ -341,7 +359,7 @@ speakerCtx = new AudioContext()
       <h2>A complete chess experience.<br/><span class="amber">In 48 hours.</span></h2>
       <div class="cols-3" style="margin-top:28px;">
         <div class="card a">
-          <h3>🎙️ Voice Pipeline</h3>
+          <h3><svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg> Voice Pipeline</h3>
           <ul class="checks" style="font-size:14px;gap:7px;margin-top:8px;">
             <li>AssemblyAI WebSocket (live)</li>
             <li>Dual AudioContext fix</li>
@@ -351,7 +369,7 @@ speakerCtx = new AudioContext()
           </ul>
         </div>
         <div class="card b">
-          <h3>♟️ Chess Engine</h3>
+          <h3><svg class="svg-icon" viewBox="0 0 24 24"><path d="m19 21-3-4-2-4 2-5-2-2-4 1-2 3-2 1v5l3 3 2 2h8z"/><path d="M12 9h.01"/></svg> Chess Engine</h3>
           <ul class="checks" style="font-size:14px;gap:7px;margin-top:8px;">
             <li>Full legal move validation</li>
             <li>En passant, castling, promotion</li>
@@ -361,7 +379,7 @@ speakerCtx = new AudioContext()
           </ul>
         </div>
         <div class="card c">
-          <h3>🔊 Sound Engine</h3>
+          <h3><svg class="svg-icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg> Sound Engine</h3>
           <ul class="checks" style="font-size:14px;gap:7px;margin-top:8px;">
             <li>Wooden piece move/capture</li>
             <li>Castle clunk · Promotion shimmer</li>
@@ -371,7 +389,7 @@ speakerCtx = new AudioContext()
           </ul>
         </div>
         <div class="card">
-          <h3>⏱️ Chess Clock</h3>
+          <h3><svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Chess Clock</h3>
           <ul class="checks" style="font-size:14px;gap:7px;margin-top:8px;">
             <li>Bullet · Blitz · Rapid · Casual</li>
             <li>Increment support</li>
@@ -381,7 +399,7 @@ speakerCtx = new AudioContext()
           </ul>
         </div>
         <div class="card">
-          <h3>♿ Accessibility</h3>
+          <h3><svg class="svg-icon" viewBox="0 0 24 24"><circle cx="16" cy="4" r="1"/><path d="m18 19 1-7-6 1"/><path d="m5 8 3-3 5.5 3-2.36 3.5"/><path d="M4.24 14.5a5 5 0 0 0 6.88 6"/><path d="M13.76 17.5a5 5 0 0 0-4-7.5"/></svg> Accessibility</h3>
           <ul class="checks" style="font-size:14px;gap:7px;margin-top:8px;">
             <li>IBCA phonetic notation</li>
             <li>Spatial stereo earcons</li>
@@ -391,7 +409,7 @@ speakerCtx = new AudioContext()
           </ul>
         </div>
         <div class="card">
-          <h3>🧪 Test Coverage</h3>
+          <h3><svg class="svg-icon" viewBox="0 0 24 24"><path d="M10 2v7.31L4.65 19.3A2 2 0 0 0 6.4 22h11.2a2 2 0 0 0 1.75-2.7L14 9.31V2"/></svg> Test Coverage</h3>
           <ul class="checks" style="font-size:14px;gap:7px;margin-top:8px;">
             <li>337 tests, all passing</li>
             <li>Adversarial edge cases</li>
@@ -431,7 +449,7 @@ speakerCtx = new AudioContext()
         </div>
         <div>
           <div class="card" style="margin-bottom:14px;">
-            <h3>💰 Business Model</h3>
+            <h3><svg class="svg-icon" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.45 1-1 1H7v2h10v-2h-2c-.55 0-1-.45-1-1v-2.34"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> Business Model</h3>
             <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px;">
               <div style="display:flex;gap:12px;align-items:center;font-size:14px;">
                 <span style="background:rgba(62,207,142,0.12);border:1px solid rgba(62,207,142,0.3);color:var(--accent);padding:3px 10px;border-radius:100px;font-size:11px;font-weight:700;text-transform:uppercase;flex-shrink:0;">Free</span>
@@ -448,7 +466,7 @@ speakerCtx = new AudioContext()
             </div>
           </div>
           <div class="card a">
-            <h3>🏆 Why now?</h3>
+            <h3><svg class="svg-icon" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.45 1-1 1H7v2h10v-2h-2c-.55 0-1-.45-1-1v-2.34"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> Why now?</h3>
             <p style="font-size:14px;">AssemblyAI's Voice Agent API makes real-time bidirectional chess conversation actually possible at this latency. Six months ago this product couldn't exist. The technology just caught up with the need.</p>
           </div>
         </div>
@@ -466,7 +484,7 @@ speakerCtx = new AudioContext()
           <div class="tl-item">
             <div class="tl-track"><div class="tl-dot"></div><div class="tl-line"></div></div>
             <div class="tl-body">
-              <h3 class="accent">✅ Today — Hackdevengers 2.0</h3>
+              <h3 class="accent"><svg class="svg-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Today — Hackdevengers 2.0</h3>
               <p style="font-size:14px;">Full voice chess · AssemblyAI integration · IBCA phonetics · Chess clocks · Chess.com sounds · Game over modal · 337 tests</p>
             </div>
           </div>
@@ -487,7 +505,7 @@ speakerCtx = new AudioContext()
         </div>
         <div style="display:flex;flex-direction:column;gap:14px;">
           <div class="card a">
-            <h3>💡 If We Had More Time</h3>
+            <h3><svg class="svg-icon" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg> If We Had More Time</h3>
             <ul class="checks" style="margin-top:10px;font-size:14px;gap:9px;">
               <li><strong>Voice multiplayer rooms</strong> — two blind players, one conversation</li>
               <li><strong>Haptic encoding</strong> — vibration patterns for each square, so the game works without audio</li>

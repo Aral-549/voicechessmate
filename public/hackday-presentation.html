@@ -178,6 +178,24 @@
     background: radial-gradient(ellipse at 20% 50%, rgba(108,142,191,0.04) 0%, transparent 60%),
                 radial-gradient(ellipse at 80% 20%, rgba(240,192,64,0.03) 0%, transparent 50%);
   }
+
+  .svg-icon {
+    width: 1.1em;
+    height: 1.1em;
+    display: inline-block;
+    vertical-align: -0.15em;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .icon-lg {
+    width: 2em;
+    height: 2em;
+    vertical-align: middle;
+    margin-bottom: 8px;
+  }
 </style>
 </head>
 <body>
@@ -186,15 +204,15 @@
 
   <!-- ═══════════════ SLIDE 1 — Title ═══════════════ -->
   <div class="slide active" id="s1">
-    <div class="board-deco">♔ ♟ ♗ ♜ ♕ ♞</div>
+    <div class="board-deco"><svg class="svg-icon" viewBox="0 0 24 24"><path d="m19 21-3-4-2-4 2-5-2-2-4 1-2 3-2 1v5l3 3 2 2h8z"/><path d="M12 9h.01"/></svg></div>
     <div class="tag">HACKDAY 1.0 · Team Submission</div>
     <h1><span class="accent">Voice</span>Chessmate</h1>
     <p class="sub">Play chess entirely through your voice.<br/>No screen. No mouse. No barriers.</p>
     <div style="display:flex;gap:24px;margin-top:16px;">
-      <div class="pill">🎙️ AssemblyAI</div>
-      <div class="pill">♟️ chess.js</div>
-      <div class="pill">⚡ Next.js 16</div>
-      <div class="pill">🧪 337 Tests</div>
+      <div class="pill"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg> AssemblyAI</div>
+      <div class="pill"><svg class="svg-icon" viewBox="0 0 24 24"><path d="m19 21-3-4-2-4 2-5-2-2-4 1-2 3-2 1v5l3 3 2 2h8z"/><path d="M12 9h.01"/></svg> chess.js</div>
+      <div class="pill"><svg class="svg-icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Next.js 16</div>
+      <div class="pill"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M10 2v7.31L4.65 19.3A2 2 0 0 0 6.4 22h11.2a2 2 0 0 0 1.75-2.7L14 9.31V2"/></svg> 337 Tests</div>
     </div>
   </div>
 
@@ -206,17 +224,17 @@
       <p style="margin-bottom:32px;">285 million people with visual impairments are effectively locked out of online chess.</p>
       <ul class="pain-list">
         <li>
-          <span class="icon">👁️</span>
+          <span class="icon"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg></span>
           <div><strong>Chess.com & Lichess require constant visual tracking.</strong><br/>
           Timed games — Blitz, Bullet — are physically impossible without a real-time visual board.</div>
         </li>
         <li>
-          <span class="icon">🔊</span>
+          <span class="icon"><svg class="svg-icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></span>
           <div><strong>Screen readers read raw HTML tables cell by cell.</strong><br/>
           6–10 second delay per move. One slow move and the clock flags. Game over.</div>
         </li>
         <li>
-          <span class="icon">🧠</span>
+          <span class="icon"><svg class="svg-icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M9 2v2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 20v2"/><path d="M15 20v2"/><path d="M2 9h2"/><path d="M2 15h2"/></svg></span>
           <div><strong>Zero tactical context.</strong><br/>
           No awareness of threats, forks, pins, or checks. Just raw coordinate data.</div>
         </li>
@@ -239,15 +257,15 @@ Coach: "Knight to f3. Good development.
         </div>
         <div style="display:flex;flex-direction:column;gap:16px;">
           <div class="card accent-border">
-            <h3>🎙️ Hold <kbd>J</kbd> to speak</h3>
+            <h3><svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg> Hold <kbd>J</kbd> to speak</h3>
             <p style="font-size:15px;">Push-to-talk. Say your move. Release. Done.</p>
           </div>
           <div class="card green-border">
-            <h3>🔊 Live captions + chess.com sounds</h3>
+            <h3><svg class="svg-icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg> Live captions + chess.com sounds</h3>
             <p style="font-size:15px;">Streaming transcript. Wooden piece sounds. Check alerts. Win fanfares.</p>
           </div>
           <div class="card gold-border">
-            <h3>🤖 4 difficulty levels + blitz timer</h3>
+            <h3><svg class="svg-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" x2="8" y1="16" y2="16"/><line x1="16" x2="16" y1="16" y2="16"/></svg> 4 difficulty levels + blitz timer</h3>
             <p style="font-size:15px;">Beginner to Master. Bullet, Blitz, Rapid, or casual.</p>
           </div>
         </div>
@@ -262,7 +280,7 @@ Coach: "Knight to f3. Good development.
       <h2>Built for accessibility.<br/><span class="accent">Useful for everyone.</span></h2>
       <div class="cols-3" style="margin-top:36px;">
         <div class="card accent-border" style="text-align:center;">
-          <div style="font-size:40px;margin-bottom:12px;">♿</div>
+          <svg class="svg-icon icon-lg" viewBox="0 0 24 24"><circle cx="16" cy="4" r="1"/><path d="m18 19 1-7-6 1"/><path d="m5 8 3-3 5.5 3-2.36 3.5"/><path d="M4.24 14.5a5 5 0 0 0 6.88 6"/><path d="M13.76 17.5a5 5 0 0 0-4-7.5"/></svg>
           <h3>Blind & Low-Vision Players</h3>
           <p style="font-size:15px;">285M people globally. The primary use case. Eyes-free chess from first move to checkmate.</p>
           <div class="stat" style="margin-top:20px;">
@@ -271,7 +289,7 @@ Coach: "Knight to f3. Good development.
           </div>
         </div>
         <div class="card" style="text-align:center;">
-          <div style="font-size:40px;margin-bottom:12px;">🎓</div>
+          <svg class="svg-icon icon-lg" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           <h3>Chess Learners</h3>
           <p style="font-size:15px;">Ask the coach anything mid-game. "What are my threats?" "Describe the board." Voice-first coaching.</p>
           <div class="stat" style="margin-top:20px;">
@@ -280,7 +298,7 @@ Coach: "Knight to f3. Good development.
           </div>
         </div>
         <div class="card" style="text-align:center;">
-          <div style="font-size:40px;margin-bottom:12px;">🎧</div>
+          <svg class="svg-icon icon-lg" viewBox="0 0 24 24"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
           <h3>Hands-Free Players</h3>
           <p style="font-size:15px;">Commuters, multitaskers, anyone who wants to play without a screen. Chess on the go.</p>
           <div class="stat" style="margin-top:20px;">
@@ -300,15 +318,15 @@ Coach: "Knight to f3. Good development.
       <div class="cols-2" style="margin-top:28px;">
         <div style="display:flex;flex-direction:column;gap:14px;">
           <div class="card">
-            <h3>🎙️ AssemblyAI Voice Agent (WebSocket)</h3>
+            <h3><svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg> AssemblyAI Voice Agent (WebSocket)</h3>
             <p style="font-size:14px;">Real-time PCM16 audio streamed in 25ms chunks. The agent understands chess context and calls typed tools — <code style="color:var(--accent);">apply_move</code>, <code style="color:var(--accent);">describe_board</code>, <code style="color:var(--accent);">undo_move</code>.</p>
           </div>
           <div class="card">
-            <h3>🔈 Dual AudioContext (Linux fix)</h3>
+            <h3><svg class="svg-icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg> Dual AudioContext (Linux fix)</h3>
             <p style="font-size:14px;">Speaker context at native 48kHz (prevents PulseAudio muting). Mic capture at 24kHz (what AssemblyAI requires). One of the few apps that actually works on Linux.</p>
           </div>
           <div class="card">
-            <h3>♟️ chess.js + full ruleset</h3>
+            <h3><svg class="svg-icon" viewBox="0 0 24 24"><path d="m19 21-3-4-2-4 2-5-2-2-4 1-2 3-2 1v5l3 3 2 2h8z"/><path d="M12 9h.01"/></svg> chess.js + full ruleset</h3>
             <p style="font-size:14px;">Legal move validation, en passant, castling, promotion, threefold repetition, 50-move rule — all of it. 337 tests covering adversarial edge cases.</p>
           </div>
         </div>
@@ -320,7 +338,7 @@ Coach: "Knight to f3. Good development.
      └─ PCM16 → WebSocket → AssemblyAI
          └─ reply.audio events
              └─ AudioBufferSourceNode (48kHz)
-                 └─ 🔊 Speaker</div>
+                 └─ <svg class="svg-icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg> Speaker</div>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:8px;">
             <div class="pill">Next.js 16</div>
@@ -379,11 +397,11 @@ Coach: "Knight to f3. Good development.
         </div>
         <div style="display:flex;flex-direction:column;gap:14px;">
           <div class="card green-border">
-            <h3>🏆 Competitive Moat</h3>
+            <h3><svg class="svg-icon" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.45 1-1 1H7v2h10v-2h-2c-.55 0-1-.45-1-1v-2.34"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> Competitive Moat</h3>
             <p style="font-size:15px;">No major chess platform has real voice-first play today. Chess.com's "accessibility" is a keyboard-navigable board — not voice. We're building the category.</p>
           </div>
           <div class="card accent-border">
-            <h3>🤝 Partnership Angle</h3>
+            <h3><svg class="svg-icon" viewBox="0 0 24 24"><path d="m11 17 2 2a1 1 0 0 0 1.4 0l4.3-4.3a1 1 0 0 0 0-1.4l-2-2a1 1 0 0 0-1.4 0l-1.3 1.3"/><path d="m13 11-2-2a1 1 0 0 0-1.4 0L5.3 13.3a1 1 0 0 0 0 1.4l2 2a1 1 0 0 0 1.4 0l1.3-1.3"/></svg> Partnership Angle</h3>
             <p style="font-size:15px;">IBCA (International Blind Chess Association) runs tournaments globally. A white-label version of VoiceChessmate becomes the official tournament client.</p>
           </div>
         </div>
@@ -404,7 +422,7 @@ Coach: "Knight to f3. Good development.
               <div class="tline-line"></div>
             </div>
             <div class="tline-body">
-              <h3>✅ Now — HACKDAY 1.0</h3>
+              <h3><svg class="svg-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Now — HACKDAY 1.0</h3>
               <p style="font-size:14px;">Full voice gameplay · 4 difficulty levels · Blitz/Rapid/Bullet clocks · Chess.com sounds · Game over modal · 337 tests passing</p>
             </div>
           </div>
@@ -433,15 +451,15 @@ Coach: "Knight to f3. Good development.
           <div class="tag" style="margin-bottom:16px;">07 · If We Had More Time</div>
           <div style="display:flex;flex-direction:column;gap:12px;">
             <div class="card" style="padding:18px 22px;">
-              <h3 style="font-size:16px;">🎤 Voice-to-Voice Multiplayer</h3>
+              <h3 style="font-size:16px;"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg> Voice-to-Voice Multiplayer</h3>
               <p style="font-size:14px;">Two blind players in a real-time voice room — each hearing the other's moves and clock through VoiceChessmate.</p>
             </div>
             <div class="card" style="padding:18px 22px;">
-              <h3 style="font-size:16px;">📱 Haptic Move Feedback</h3>
+              <h3 style="font-size:16px;"><svg class="svg-icon" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg> Haptic Move Feedback</h3>
               <p style="font-size:14px;">Phone vibration patterns that encode the destination square — so the entire game is perceivable without audio at all.</p>
             </div>
             <div class="card" style="padding:18px 22px;">
-              <h3 style="font-size:16px;">🌍 IBCA Tournament Mode</h3>
+              <h3 style="font-size:16px;"><svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> IBCA Tournament Mode</h3>
               <p style="font-size:14px;">Official adjudication, digital score sheets, arbiter dashboard — a full blind chess tournament platform.</p>
             </div>
           </div>
