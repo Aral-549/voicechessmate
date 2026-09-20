@@ -122,54 +122,60 @@ export default function Home() {
   );
 
   return (
-    <>
+    <div className="flex flex-col h-screen overflow-hidden">
       <a href="#main-content" className="skip-link">
         Skip to voice controls
       </a>
 
-      <header className="border-b border-border px-6 py-4 backdrop-blur-md bg-bg/80 sticky top-0 z-30">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h1 className="font-display text-2xl font-semibold tracking-tight">Voice Chess Coach</h1>
-              <p className="text-sm text-fg-muted">Hold J to speak your move.</p>
-            </div>
-            <button
-              type="button"
-              onClick={coach.resetGame}
-              className="rounded-full border border-border bg-bg-raised px-4 py-1.5 text-xs font-semibold text-fg-muted hover:border-accent hover:text-accent transition-colors shadow-xs active:scale-95 cursor-pointer"
-            >
-              New Game
-            </button>
+      {/* ── Slim header ── */}
+      <header className="flex-shrink-0 border-b border-border px-4 py-2.5 backdrop-blur-md bg-bg/80 z-30">
+        <div className="mx-auto flex max-w-screen-2xl items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-3 min-w-0 shrink-0">
+            <h1 className="font-display text-lg font-semibold tracking-tight whitespace-nowrap">♔ VoiceChessmate</h1>
+            <p className="hidden sm:block text-xs text-fg-muted whitespace-nowrap">Hold J to speak</p>
           </div>
-          {/* BUG 4/5 fix: pass difficulty, onSelectDifficulty, onSetTheme to toolbar */}
-          <SettingsToolbar
-            settings={settings}
-            onToggleHighContrast={toggleHighContrast}
-            onToggleSoundCues={toggleSoundCues}
-            onToggleAnnounceCaptions={toggleAnnounceCaptions}
-            onCycleFontScale={cycleFontScale}
-            onOpenShortcuts={() => setShortcutsOpen(true)}
-            difficulty={coach.difficulty}
-            onSelectDifficulty={coach.setDifficulty}
-            speechRate={coach.speechRate}
-            onSpeechRateChange={coach.setSpeechRate}
-            onSetTheme={setTheme}
-          />
+
+          {/* Settings toolbar — fills remaining width */}
+          <div className="flex-1 min-w-0">
+            <SettingsToolbar
+              settings={settings}
+              onToggleHighContrast={toggleHighContrast}
+              onToggleSoundCues={toggleSoundCues}
+              onToggleAnnounceCaptions={toggleAnnounceCaptions}
+              onCycleFontScale={cycleFontScale}
+              onOpenShortcuts={() => setShortcutsOpen(true)}
+              difficulty={coach.difficulty}
+              onSelectDifficulty={coach.setDifficulty}
+              speechRate={coach.speechRate}
+              onSpeechRateChange={coach.setSpeechRate}
+              onSetTheme={setTheme}
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={coach.resetGame}
+            className="rounded-full border border-border bg-bg-raised px-3 py-1 text-xs font-semibold text-fg-muted hover:border-accent hover:text-accent transition-colors active:scale-95 cursor-pointer shrink-0 whitespace-nowrap"
+          >
+            New Game
+          </button>
         </div>
       </header>
 
       {/*
-        DOM order is deliberate: voice controls and the conversation come
-        before the board in the document, regardless of how the grid lays
-        them out visually, so a screen reader user reaches the thing they
-        actually need first without tabbing past board controls to get there.
+        Main: fills remaining viewport height exactly.
+        Desktop: two columns side-by-side.
+        Mobile: stacked — voice controls first (screen-reader friendly), board second.
       */}
-      <main id="main-content" className="mx-auto grid w-full max-w-7xl flex-1 items-start gap-5 sm:gap-8 px-3 sm:px-8 py-4 sm:py-8 lg:grid-cols-12">
-        <div className="flex flex-col items-center gap-4 sm:gap-6 lg:col-span-5 w-full">
+      <main
+        id="main-content"
+        className="flex-1 overflow-hidden mx-auto w-full max-w-screen-2xl flex flex-col lg:flex-row gap-0"
+      >
+        {/* ── Left / Top: voice controls + transcript ── */}
+        <div className="flex flex-col gap-3 px-3 pt-3 pb-2 lg:px-5 lg:pt-5 lg:pb-5 lg:w-[400px] xl:w-[440px] flex-shrink-0 lg:border-r lg:border-border lg:overflow-y-auto">
           {!coach.isVoiceSupported && (
             <p role="alert" className="panel w-full border-danger p-3 text-sm">
-              Voice input isn&apos;t available in this browser. Use the text box below to play instead.
+              Voice input isn&apos;t available in this browser. Use the text box below.
             </p>
           )}
 
@@ -194,41 +200,37 @@ export default function Home() {
             status={coach.status}
             onRepeat={coach.repeatLast}
           />
+          <TextFallbackForm onSubmit={coach.submitTextFallback} emphasized={!coach.isVoiceSupported} />
 
-          {/* Desktop view: text form and transcript in left column */}
-          <div className="hidden lg:flex flex-col gap-6 w-full">
-            <TextFallbackForm onSubmit={coach.submitTextFallback} emphasized={!coach.isVoiceSupported} />
+          {/* Transcript scrolls inside its own container */}
+          <div className="flex-1 min-h-0 overflow-hidden">
             <TranscriptLog entries={coach.entries} />
           </div>
         </div>
 
-        <div className="lg:col-span-7 flex flex-col items-center justify-start w-full">
-          <ChessBoardPanel
-            fen={coach.fen}
-            moveHistory={coach.moveHistory}
-            onManualMove={coach.attemptManualMove}
-            visible={settings.boardVisible}
-            onToggleVisible={toggleBoardVisible}
-            isOpponentThinking={coach.status === "thinking"}
-            isGameOver={coach.isGameOver}
-            clock={coach.clock}
-            difficulty={coach.difficulty}
-            onSelectDifficulty={coach.setDifficulty}
-          />
-
-          {/* Mobile view: text form and transcript under the board */}
-          <div className="flex lg:hidden flex-col gap-4 w-full mt-5">
-            <TextFallbackForm onSubmit={coach.submitTextFallback} emphasized={!coach.isVoiceSupported} />
-            <TranscriptLog entries={coach.entries} />
+        {/* ── Right / Bottom: chess board fills remaining space ── */}
+        <div className="flex-1 flex flex-col items-center justify-start overflow-y-auto px-3 py-3 lg:px-5 lg:py-5 min-h-0">
+          <div className="w-full max-w-[640px] xl:max-w-[700px]">
+            <ChessBoardPanel
+              fen={coach.fen}
+              moveHistory={coach.moveHistory}
+              onManualMove={coach.attemptManualMove}
+              visible={settings.boardVisible}
+              onToggleVisible={toggleBoardVisible}
+              isOpponentThinking={coach.status === "thinking"}
+              isGameOver={coach.isGameOver}
+              clock={coach.clock}
+              difficulty={coach.difficulty}
+              onSelectDifficulty={coach.setDifficulty}
+            />
           </div>
+          <p className="mt-3 text-xs text-fg-muted text-center">
+            Press <span className="font-mono">?</span> for keyboard shortcuts
+          </p>
         </div>
       </main>
 
-      <footer className="border-t border-border px-6 py-6 text-center text-sm text-fg-muted">
-        Press <span className="font-mono">?</span> any time for the full list of keyboard shortcuts.
-      </footer>
-
-      {/* BUG 1 fix: render GameOverModal when game ends */}
+      {/* Game over modal */}
       {coach.isGameOver && !gameOverDismissed && (
         <GameOverModal
           isGameOver={coach.isGameOver}
@@ -247,6 +249,6 @@ export default function Home() {
       )}
 
       {shortcutsOpen && <ShortcutsModal onClose={() => setShortcutsOpen(false)} />}
-    </>
+    </div>
   );
 }

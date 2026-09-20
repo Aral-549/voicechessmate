@@ -189,7 +189,10 @@ export function useVoiceChessCoach(options?: VoiceChessCoachOptions) {
   const speak = useCallback(
     (text: string, opts?: { isCoach?: boolean }) => {
       if (opts?.isCoach !== false) {
-        lastCoachMessageRef.current = text;
+        // Do NOT set lastCoachMessageRef here — tool narration (e.g. "Black knight to
+        // Felix 6") is just a short SAN string.  lastCoachMessageRef is only updated
+        // in agent-speaking-end with the full streamed coach response, so the R key
+        // always replays what the coach actually said, not the move notation.
         addEntry("coach", text);
       }
       setStatus("speaking");
