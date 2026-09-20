@@ -69,9 +69,11 @@ export interface ReplyDoneEvent extends VoiceAgentEvent {
 
 export interface ToolCallEvent extends VoiceAgentEvent {
   type: 'tool.call';
-  tool_call_id: string;
+  call_id?: string;
+  tool_call_id?: string;
+  id?: string;
   name: string;
-  arguments: string; // JSON string
+  arguments: string | Record<string, unknown>; // JSON string or parsed object
 }
 
 export interface AgentTextEvent extends VoiceAgentEvent {
@@ -95,6 +97,20 @@ export interface GameState {
   lastMove: Move | null;
   legalMoves: Move[];
   capturedPieces: { white: PieceSymbol[]; black: PieceSymbol[] };
+  premove?: string | null;
+}
+
+/** A move pinned to concrete squares at the moment it was understood.
+ *  Used for premoves and for moves awaiting spoken confirmation — in both cases
+ *  the board may change before it plays, so the squares must not be re-derived. */
+export interface ResolvedMove {
+  from: string;
+  to: string;
+  promotion?: string;
+  /** SAN as of the position it was resolved in — display and announcements only. */
+  san: string;
+  /** What the player actually said, kept for error messages. */
+  spoken: string;
 }
 
 export interface MoveResult {
@@ -106,7 +122,7 @@ export interface MoveResult {
 }
 
 export interface BoardDescription {
-  focus: 'full' | 'kingside' | 'queenside' | 'center' | 'threats' | 'my_pieces' | 'captures';
+  focus: 'full' | 'kingside' | 'queenside' | 'center' | 'threats' | 'my_pieces' | 'captures' | 'tactical';
   description: string;
 }
 

@@ -11,7 +11,7 @@ import { NextResponse, NextRequest } from 'next/server';
 // --- Simple in-memory rate limiter ---
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
-const RATE_LIMIT_MAX = 10; // max 10 token mints per minute per IP
+const RATE_LIMIT_MAX = 60; // max 60 token mints per minute per IP
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
@@ -37,7 +37,6 @@ setInterval(() => {
 export async function GET(request: NextRequest) {
   // --- Origin check: only allow requests from same origin ---
   const origin = request.headers.get('origin');
-  const referer = request.headers.get('referer');
   const host = request.headers.get('host');
 
   // In production, reject requests from foreign origins
@@ -105,3 +104,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+

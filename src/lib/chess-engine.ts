@@ -4,7 +4,7 @@
 // ============================================================
 
 import { Chess, Square, Move, Color, PieceSymbol } from 'chess.js';
-import type { GameState, MoveResult, BoardDescription, Difficulty } from '@/types';
+import type { GameState, MoveResult, ResolvedMove, BoardDescription, Difficulty } from '@/types';
 
 const PIECE_NAMES: Record<PieceSymbol, string> = {
   p: 'pawn',
@@ -38,6 +38,192 @@ export function squareToIBCA(square: string): string {
   return name ? `${name} ${rank}` : square;
 }
 
+// Centipawn piece values for engine evaluation
+export const PIECE_VALUES: Record<PieceSymbol, number> = {
+  p: 100,
+  n: 320,
+  b: 330,
+  r: 500,
+  q: 900,
+  k: 20000,
+};
+
+// Piece-Square Tables (PST) from White's perspective:
+// Indexed by rank (0 = Rank 1, 7 = Rank 8) and file (0 = a, 7 = h).
+// For Black, rank index is mirrored: 7 - rank.
+const PST_PAWN: number[][] = [
+  [  0,   0,   0,   0,   0,   0,   0,   0], // Rank 1
+  [  5,  10,  10, -20, -20,  10,  10,   5], // Rank 2
+  [  5,  -5, -10,   0,   0, -10,  -5,   5], // Rank 3
+  [  0,   0,   0,  20,  20,   0,   0,   0], // Rank 4
+  [  5,   5,  10,  25,  25,  10,   5,   5], // Rank 5
+  [ 10,  10,  20,  30,  30,  20,  10,  10], // Rank 6
+  [ 50,  50,  50,  50,  50,  50,  50,  50], // Rank 7
+  [  0,   0,   0,   0,   0,   0,   0,   0], // Rank 8
+];
+
+const PST_KNIGHT: number[][] = [
+  [-50, -40, -30, -30, -30, -30, -40, -50], // Rank 1
+  [-40, -20,   0,   5,   5,   0, -20, -40], // Rank 2
+  [-30,   5,  10,  15,  15,  10,   5, -30], // Rank 3
+  [-30,   0,  15,  20,  20,  15,   0, -30], // Rank 4
+  [-30,   5,  15,  20,  20,  15,   5, -30], // Rank 5
+  [-30,   0,  10,  15,  15,  10,   0, -30], // Rank 6
+  [-40, -20,   0,   0,   0,   0, -20, -40], // Rank 7
+  [-50, -40, -30, -30, -30, -30, -40, -50], // Rank 8
+];
+
+const PST_BISHOP: number[][] = [
+  [-20, -10, -10, -10, -10, -10, -10, -20], // Rank 1
+  [-10,   5,   0,   0,   0,   0,   5, -10], // Rank 2
+  [-10,  10,  10,  10,  10,  10,  10, -10], // Rank 3
+  [-10,   0,  10,  10,  10,  10,   0, -10], // Rank 4
+  [-10,   5,   5,  10,  10,   5,   5, -10], // Rank 5
+  [-10,   0,   5,  10,  10,   5,   0, -10], // Rank 6
+  [-10,   0,   0,   0,   0,   0,   0, -10], // Rank 7
+  [-20, -10, -10, -10, -10, -10, -10, -20], // Rank 8
+];
+
+const PST_ROOK: number[][] = [
+  [  0,   0,   0,   5,   5,   0,   0,   0], // Rank 1
+  [ -5,   0,   0,   0,   0,   0,   0,  -5], // Rank 2
+  [ -5,   0,   0,   0,   0,   0,   0,  -5], // Rank 3
+  [ -5,   0,   0,   0,   0,   0,   0,  -5], // Rank 4
+  [ -5,   0,   0,   0,   0,   0,   0,  -5], // Rank 5
+  [ -5,   0,   0,   0,   0,   0,   0,  -5], // Rank 6
+  [  5,  10,  10,  10,  10,  10,  10,   5], // Rank 7
+  [  0,   0,   0,   0,   0,   0,   0,   0], // Rank 8
+];
+
+const PST_QUEEN: number[][] = [
+  [-20, -10, -10,  -5,  -5, -10, -10, -20], // Rank 1
+  [-10,   0,   5,   0,   0,   0,   0, -10], // Rank 2
+  [-10,   5,   5,   5,   5,   5,   0, -10], // Rank 3
+  [  0,   0,   5,   5,   5,   5,   0,  -5], // Rank 4
+  [ -5,   0,   5,   5,   5,   5,   0,  -5], // Rank 5
+  [-10,   0,   5,   5,   5,   5,   0, -10], // Rank 6
+  [-10,   0,   0,   0,   0,   0,   0, -10], // Rank 7
+  [-20, -10, -10,  -5,  -5, -10, -10, -20], // Rank 8
+];
+
+const PST_KING: number[][] = [
+  [ 20,  30,  10,   0,   0,  10,  30,  20], // Rank 1
+  [ 20,  20,   0,   0,   0,   0,  20,  20], // Rank 2
+  [-10, -20, -20, -20, -20, -20, -20, -10], // Rank 3
+  [-20, -30, -30, -40, -40, -30, -30, -20], // Rank 4
+  [-30, -40, -40, -50, -50, -40, -40, -30], // Rank 5
+  [-30, -40, -40, -50, -50, -40, -40, -30], // Rank 6
+  [-30, -40, -40, -50, -50, -40, -40, -30], // Rank 7
+  [-30, -40, -40, -50, -50, -40, -40, -30], // Rank 8
+];
+
+export function evaluatePositionForColor(game: Chess, perspective: Color): number {
+  if (game.isCheckmate()) {
+    return game.turn() === perspective ? -30000 : 30000;
+  }
+  if (game.isDraw() || game.isStalemate()) {
+    return 0;
+  }
+
+  const board = game.board();
+  let whiteScore = 0;
+  let blackScore = 0;
+
+  for (let r = 0; r < 8; r++) {
+    for (let f = 0; f < 8; f++) {
+      const piece = board[r][f];
+      if (!piece) continue;
+
+      const rankIdx = 7 - r;
+      const fileIdx = f;
+      const pieceRank = piece.color === 'w' ? rankIdx : 7 - rankIdx;
+
+      let pst = 0;
+      switch (piece.type) {
+        case 'p': pst = PST_PAWN[pieceRank][fileIdx]; break;
+        case 'n': pst = PST_KNIGHT[pieceRank][fileIdx]; break;
+        case 'b': pst = PST_BISHOP[pieceRank][fileIdx]; break;
+        case 'r': pst = PST_ROOK[pieceRank][fileIdx]; break;
+        case 'q': pst = PST_QUEEN[pieceRank][fileIdx]; break;
+        case 'k': pst = PST_KING[pieceRank][fileIdx]; break;
+      }
+
+      const totalVal = PIECE_VALUES[piece.type] + pst;
+      if (piece.color === 'w') {
+        whiteScore += totalVal;
+      } else {
+        blackScore += totalVal;
+      }
+    }
+  }
+
+  return perspective === 'w' ? whiteScore - blackScore : blackScore - whiteScore;
+}
+
+export function minimaxAlphaBeta(
+  game: Chess,
+  depth: number,
+  alpha: number,
+  beta: number,
+  isMaximizing: boolean,
+  rootColor: Color
+): number {
+  if (depth <= 0) {
+    return evaluatePositionForColor(game, rootColor);
+  }
+
+  const moves = game.moves({ verbose: true });
+  if (moves.length === 0) {
+    if (game.isCheck()) {
+      return isMaximizing ? -30000 : 30000;
+    }
+    return 0;
+  }
+
+  // Move ordering: captures and checks first to optimize alpha-beta cutoffs
+  moves.sort((a, b) => {
+    let scoreA = 0;
+    let scoreB = 0;
+    if (a.captured) scoreA += PIECE_VALUES[a.captured] * 10 - PIECE_VALUES[a.piece];
+    if (a.san.includes('+')) scoreA += 50;
+    if (a.promotion) scoreA += 800;
+    if (a.to === 'd4' || a.to === 'e4' || a.to === 'd5' || a.to === 'e5') scoreA += 20;
+
+    if (b.captured) scoreB += PIECE_VALUES[b.captured] * 10 - PIECE_VALUES[b.piece];
+    if (b.san.includes('+')) scoreB += 50;
+    if (b.promotion) scoreB += 800;
+    if (b.to === 'd4' || b.to === 'e4' || b.to === 'd5' || b.to === 'e5') scoreB += 20;
+
+    return scoreB - scoreA;
+  });
+
+  const candidateMoves = moves.length > 15 ? moves.slice(0, 15) : moves;
+
+  if (isMaximizing) {
+    let maxEval = -Infinity;
+    for (const move of candidateMoves) {
+      game.move(move.san);
+      const evalScore = minimaxAlphaBeta(game, depth - 1, alpha, beta, false, rootColor);
+      game.undo();
+      maxEval = Math.max(maxEval, evalScore);
+      alpha = Math.max(alpha, evalScore);
+      if (beta <= alpha) break;
+    }
+    return maxEval;
+  } else {
+    let minEval = Infinity;
+    for (const move of candidateMoves) {
+      game.move(move.san);
+      const evalScore = minimaxAlphaBeta(game, depth - 1, alpha, beta, true, rootColor);
+      game.undo();
+      minEval = Math.min(minEval, evalScore);
+      beta = Math.min(beta, evalScore);
+      if (beta <= alpha) break;
+    }
+    return minEval;
+  }
+}
+
 export class ChessEngine {
   private game: Chess;
   private moveHistory: Move[] = [];
@@ -45,9 +231,23 @@ export class ChessEngine {
     white: [],
     black: [],
   };
+  private isResigned = false;
+  private resignedColor: Color | null = null;
+  private pendingPremove: ResolvedMove | null = null;
+  private pendingConfirmation: ResolvedMove | null = null;
+  private terseNarration = false;
+  private difficulty: Difficulty = 'intermediate';
 
   constructor(fen?: string) {
     this.game = new Chess(fen);
+  }
+
+  setDifficulty(difficulty: Difficulty): void {
+    this.difficulty = difficulty;
+  }
+
+  getDifficulty(): Difficulty {
+    return this.difficulty;
   }
 
   // --- State ---
@@ -61,14 +261,142 @@ export class ChessEngine {
       pgn: this.game.pgn(),
       turn: this.game.turn(),
       moveNumber: Math.ceil(history.length / 2) + 1,
-      isCheck: this.game.isCheck(),
-      isCheckmate: this.game.isCheckmate(),
-      isDraw: this.game.isDraw(),
-      isStalemate: this.game.isStalemate(),
-      isGameOver: this.game.isGameOver(),
+      isCheck: this.isResigned ? false : this.game.isCheck(),
+      isCheckmate: this.isResigned ? false : this.game.isCheckmate(),
+      isDraw: this.isResigned ? false : this.game.isDraw(),
+      isStalemate: this.isResigned ? false : this.game.isStalemate(),
+      isGameOver: this.isResigned || this.game.isGameOver(),
       lastMove,
-      legalMoves: this.game.moves({ verbose: true }),
-      capturedPieces: { ...this.capturedPieces },
+      legalMoves: this.isResigned ? [] : this.game.moves({ verbose: true }),
+      capturedPieces: {
+        white: [...this.capturedPieces.white],
+        black: [...this.capturedPieces.black],
+      },
+      premove: this.pendingPremove?.san ?? null,
+    };
+  }
+
+  // --- Premove Support (Chess.com style voice premoving) ---
+
+  /** Queue a premove that has ALREADY been resolved to concrete squares.
+   *  Storing squares rather than the spoken words is the whole point: the board
+   *  changes before a premove fires, so re-interpreting the words later can resolve
+   *  to a different piece's move than the one the player meant. */
+  setPremove(resolved: ResolvedMove): { success: boolean; narration: string; premove: string } {
+    this.pendingPremove = resolved;
+    return {
+      success: true,
+      narration: `Premove queued: ${resolved.san}. It will play automatically if it is still legal after the opponent moves.`,
+      premove: resolved.san,
+    };
+  }
+
+  getPremove(): ResolvedMove | null {
+    return this.pendingPremove;
+  }
+
+  // --- Pending Confirmation (moderate-confidence speech) ---
+  // A move we think we understood but won't play unheard. Same square-pinning
+  // rule as premoves: store the squares, never the words.
+
+  setPendingConfirmation(resolved: ResolvedMove): void {
+    this.pendingConfirmation = resolved;
+  }
+
+  getPendingConfirmation(): ResolvedMove | null {
+    return this.pendingConfirmation;
+  }
+
+  clearPendingConfirmation(): void {
+    this.pendingConfirmation = null;
+  }
+
+  /** Play the awaiting-confirmation move, if those squares are still legal. */
+  confirmPendingMove(): MoveResult | null {
+    const pending = this.pendingConfirmation;
+    this.pendingConfirmation = null;
+    if (!pending) return null;
+
+    const match = this.game.moves({ verbose: true }).find(
+      (m) =>
+        m.from === pending.from &&
+        m.to === pending.to &&
+        (pending.promotion ? m.promotion === pending.promotion : !m.promotion)
+    );
+    if (!match) return null;
+    return this.makeMove(match.san);
+  }
+
+  /** Play the queued premove only if those exact squares are still legal.
+   *  Never re-matches and never substitutes — an unplayable premove is discarded. */
+  tryExecutePremove(): { played: boolean; narration: string; result?: MoveResult } {
+    const queued = this.pendingPremove;
+    if (!queued) return { played: false, narration: '' };
+
+    this.pendingPremove = null;
+    this.pendingConfirmation = null;
+
+    const match = this.game.moves({ verbose: true }).find(
+      (m) =>
+        m.from === queued.from &&
+        m.to === queued.to &&
+        (queued.promotion ? m.promotion === queued.promotion : !m.promotion)
+    );
+    if (!match) {
+      return { played: false, narration: `Premove ${queued.san} is no longer legal. Cancelled.` };
+    }
+
+    const result = this.makeMove(match.san);
+    return result.success
+      ? { played: true, narration: result.narration, result }
+      : { played: false, narration: `Premove ${queued.san} could not be played. Cancelled.` };
+  }
+
+  clearPremove(): { success: boolean; narration: string } {
+    const hadPremove = !!this.pendingPremove;
+    this.pendingPremove = null;
+    return {
+      success: true,
+      narration: hadPremove ? 'Active premove has been cancelled.' : 'No active premove to cancel.',
+    };
+  }
+
+  // --- Resignation ---
+
+  resign(color?: 'w' | 'b'): GameState & {
+    success: boolean;
+    narration: string;
+    gameOverReason: string;
+    gameState: GameState;
+  } {
+    const state = this.getGameState();
+    if (state.isGameOver) {
+      const gameOverReason = this.describeGameOver();
+      return {
+        ...state,
+        success: false,
+        narration: gameOverReason,
+        gameOverReason,
+        gameState: state,
+      };
+    }
+
+    const resigningColor: Color = color ?? this.game.turn();
+    this.isResigned = true;
+    this.resignedColor = resigningColor;
+
+    const winnerColor: Color = resigningColor === 'w' ? 'b' : 'w';
+    const resignedName = resigningColor === 'w' ? 'White' : 'Black';
+    const winnerName = winnerColor === 'w' ? 'White' : 'Black';
+    const narration = `${resignedName} resigns. ${winnerName} wins by resignation.`;
+    const newState = this.getGameState();
+
+    return {
+      ...newState,
+      success: true,
+      narration,
+      gameOverReason: narration,
+      gameState: newState,
     };
   }
 
@@ -127,7 +455,39 @@ export class ChessEngine {
 
   // --- Move Narration ---
 
+  /** Blitz narration: drop every word that carries no information.
+   *  "Black pawn to Eva 5." (5 words) becomes "Pawn Eva 5." (3). The colour is
+   *  redundant — the only move ever announced is the opponent's — and "to" says
+   *  nothing. At ~3x fewer words this is the single biggest latency win available,
+   *  since the API exposes no speech-rate control. */
+  private narrateMoveTerse(move: Move): string {
+    const piece = PIECE_NAMES[move.piece];
+    const toSquare = squareToIBCA(move.to);
+    let out: string;
+
+    if (move.san === 'O-O') out = 'Castles kingside';
+    else if (move.san === 'O-O-O') out = 'Castles queenside';
+    else if (move.captured) out = `${piece} takes ${PIECE_NAMES[move.captured]} ${toSquare}`;
+    else out = `${piece} ${toSquare}`;
+
+    if (move.promotion) out += `, promotes ${PIECE_NAMES[move.promotion]}`;
+
+    const s = this.getGameState();
+    if (s.isCheckmate) out += '. Mate';
+    else if (s.isCheck) out += '. Check';
+    else if (s.isStalemate) out += '. Stalemate';
+    else if (s.isDraw) out += '. Draw';
+
+    return out.charAt(0).toUpperCase() + out.slice(1) + '.';
+  }
+
+  setTerseNarration(on: boolean): void {
+    this.terseNarration = on;
+  }
+
   private narrateMove(move: Move): string {
+    if (this.terseNarration) return this.narrateMoveTerse(move);
+
     const piece = PIECE_NAMES[move.piece];
     const color = move.color === 'w' ? 'White' : 'Black';
     const toSquare = squareToIBCA(move.to);
@@ -171,6 +531,9 @@ export class ChessEngine {
     const playerColor = turn; // describe from current player's perspective
 
     switch (focus) {
+      case 'tactical':
+      case 'blitz':
+        return { focus: 'tactical' as BoardDescription['focus'], description: this.describeTactical(playerColor) };
       case 'threats':
         return { focus: 'threats', description: this.describeThreats(playerColor) };
       case 'kingside':
@@ -183,6 +546,8 @@ export class ChessEngine {
         return { focus: 'my_pieces', description: this.describePlayerPieces(board, playerColor) };
       case 'captures':
         return { focus: 'captures', description: this.describeCapturedPieces() };
+      case 'scan':
+        return { focus: 'scan' as unknown as BoardDescription['focus'], description: this.describeFullBoard(board, playerColor) };
       case 'full':
       default:
         return { focus: 'full', description: this.describeFullBoard(board, playerColor) };
@@ -282,6 +647,66 @@ export class ChessEngine {
     return `Your pieces: ${pieces.join(', ')}.`;
   }
 
+  /** Blitz mode: the tactical read a sighted player gets at a glance, in one breath.
+   *  Material, what's hanging on both sides, and whether you're in check.
+   *  ponytail: "hanging" = attacked and not defended. A real SEE swing
+   *  (defended-but-losing exchanges) needs a proper static exchange eval. */
+  private describeTactical(perspective: Color): string {
+    const parts: string[] = [];
+    const board = this.game.board();
+
+    if (this.game.inCheck()) parts.push('You are in check');
+
+    // Material balance
+    let diff = 0;
+    for (const row of board) {
+      for (const sq of row) {
+        if (!sq || sq.type === 'k') continue;
+        diff += (sq.color === perspective ? 1 : -1) * PIECE_VALUES[sq.type];
+      }
+    }
+    const pawns = Math.round(Math.abs(diff) / 100);
+    if (Math.abs(diff) < 100) parts.push('Material even');
+    else parts.push(`${diff > 0 ? 'You are up' : 'You are down'} ${pawns} ${pawns === 1 ? 'pawn' : 'pawns'}`);
+
+    const theirAttacks = this.getOpponentAttacks(perspective);
+    const myMoves = this.game.turn() === perspective ? this.game.moves({ verbose: true }) : [];
+    const defended = new Set(myMoves.map((m) => m.to));
+    const attackedByThem = new Set(theirAttacks.map((m) => m.to));
+
+    // My pieces that are attacked and undefended, worst first
+    const hanging: { name: string; sq: string; val: number }[] = [];
+    for (const row of board) {
+      for (const sq of row) {
+        if (!sq || sq.color !== perspective || sq.type === 'k') continue;
+        if (attackedByThem.has(sq.square) && !defended.has(sq.square)) {
+          hanging.push({ name: PIECE_NAMES[sq.type], sq: squareToIBCA(sq.square), val: PIECE_VALUES[sq.type] });
+        }
+      }
+    }
+    hanging.sort((a, b) => b.val - a.val);
+    if (hanging.length > 0) {
+      parts.push(`Hanging: ${hanging.slice(0, 3).map((h) => `${h.name} on ${h.sq}`).join(', ')}`);
+    }
+
+    // Free material for me: their undefended pieces I can take
+    const theirDefended = new Set(theirAttacks.map((m) => m.to));
+    const wins = myMoves
+      .filter((m) => m.captured && !theirDefended.has(m.to))
+      .sort((a, b) => PIECE_VALUES[b.captured!] - PIECE_VALUES[a.captured!]);
+    if (wins.length > 0) {
+      parts.push(`You can take their ${PIECE_NAMES[wins[0].captured!]} on ${squareToIBCA(wins[0].to)} for free`);
+    }
+
+    const checks = myMoves.filter((m) => m.san.includes('#'));
+    if (checks.length > 0) parts.push(`Mate available: ${checks[0].san}`);
+
+    if (hanging.length === 0 && wins.length === 0 && parts.length <= 1) {
+      parts.push('Nothing hanging on either side');
+    }
+    return parts.join('. ') + '.';
+  }
+
   private describeThreats(perspective: Color): string {
     const threats: string[] = [];
     const opponentMoves = this.getOpponentAttacks(perspective);
@@ -379,7 +804,7 @@ export class ChessEngine {
     return `I don't understand "${pieceOrSquare}". Try a square like "Eva 4" or a piece name like "knight".`;
   }
 
-  // --- Engine Suggestion (simple evaluation without Stockfish) ---
+  // --- Evaluation & Minimax Search Heuristics ---
 
   getSimpleEvaluation(): { bestMove: string; evaluation: string; explanation: string } {
     const moves = this.game.moves({ verbose: true });
@@ -387,39 +812,28 @@ export class ChessEngine {
       return { bestMove: 'none', evaluation: 'Game over', explanation: this.describeGameOver() };
     }
 
-    // Simple heuristic: prioritize checkmate > checks > captures > center control
+    const rootColor = this.game.turn();
     let bestMove = moves[0];
     let bestScore = -Infinity;
 
     for (const move of moves) {
       let score = 0;
-
-      // Checkmate is instant win
       this.game.move(move.san);
-      if (this.game.isCheckmate()) score += 10000;
-      if (this.game.isCheck()) score += 50;
+      if (this.game.isCheckmate()) {
+        score += 10000;
+      } else if (this.game.isCheck()) {
+        score += 50;
+      } else {
+        score = minimaxAlphaBeta(this.game, 1, -Infinity, Infinity, false, rootColor);
+      }
       this.game.undo();
 
-      // Captures (MVV-LVA style)
       if (move.captured) {
-        const victimValues: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
-        const attackerValues: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
-        score += victimValues[move.captured] * 10 - attackerValues[move.piece];
+        score += PIECE_VALUES[move.captured] * 10 - PIECE_VALUES[move.piece];
       }
-
-      // Center control
-      const centerSquares = ['d4', 'd5', 'e4', 'e5'];
-      if (centerSquares.includes(move.to)) score += 5;
-
-      // Development (moving pieces off back rank)
-      if ((move.piece === 'n' || move.piece === 'b') &&
-          ((move.color === 'w' && move.from[1] === '1') ||
-           (move.color === 'b' && move.from[1] === '8'))) {
-        score += 3;
+      if (move.san === 'O-O' || move.san === 'O-O-O') {
+        score += 40;
       }
-
-      // Castling bonus
-      if (move.san === 'O-O' || move.san === 'O-O-O') score += 8;
 
       if (score > bestScore) {
         bestScore = score;
@@ -446,9 +860,9 @@ export class ChessEngine {
 
   // --- Opponent Auto-Move (for solo play against engine) ---
 
-  makeEngineMove(difficulty: Difficulty = 'intermediate'): MoveResult {
+  makeEngineMove(difficulty?: Difficulty): MoveResult {
     const moves = this.game.moves({ verbose: true });
-    if (moves.length === 0) {
+    if (moves.length === 0 || this.isResigned) {
       return {
         success: false,
         error: 'No legal moves available.',
@@ -457,29 +871,99 @@ export class ChessEngine {
       };
     }
 
+    const rootColor = this.game.turn();
     let selectedMove: Move;
 
-    switch (difficulty) {
-      case 'beginner':
-        // Random move
+    const activeDifficulty = difficulty ?? this.difficulty;
+    switch (activeDifficulty) {
+      case 'beginner': {
+        // High blunder rate / random move selection
         selectedMove = moves[Math.floor(Math.random() * moves.length)];
         break;
+      }
       case 'intermediate': {
-        // Prefer captures and checks, but mix in random
-        const good = moves.filter(m => m.captured || this.moveCausesCheck(m));
-        if (good.length > 0 && Math.random() > 0.3) {
-          selectedMove = good[Math.floor(Math.random() * good.length)];
-        } else {
-          selectedMove = moves[Math.floor(Math.random() * moves.length)];
+        // 1-ply capture & piece-square table (PST) heuristic
+        // Evaluates immediate moves at depth 1 without exploring opponent replies
+        const scoredMoves: { move: Move; score: number }[] = [];
+        for (const move of moves) {
+          this.game.move(move.san);
+          let score = evaluatePositionForColor(this.game, rootColor);
+          if (move.captured) {
+            score += PIECE_VALUES[move.captured] * 10 - PIECE_VALUES[move.piece];
+          }
+          if (move.san.includes('+')) score += 30;
+          this.game.undo();
+          scoredMoves.push({ move, score });
         }
+
+        scoredMoves.sort((a, b) => b.score - a.score);
+        selectedMove = scoredMoves[0].move;
         break;
       }
-      case 'advanced':
+      case 'advanced': {
+        // 2-ply minimax with alpha-beta search and piece-square tables
+        // Searches engine move + opponent reply (avoids blunders and defended pieces)
+        let bestScore = -Infinity;
+        let bestMoves: Move[] = [];
+
+        const sortedMoves = [...moves].sort((a, b) => {
+          const scoreA = (a.captured ? PIECE_VALUES[a.captured] * 10 - PIECE_VALUES[a.piece] : 0) + (a.san.includes('+') ? 50 : 0);
+          const scoreB = (b.captured ? PIECE_VALUES[b.captured] * 10 - PIECE_VALUES[b.piece] : 0) + (b.san.includes('+') ? 50 : 0);
+          return scoreB - scoreA;
+        });
+
+        let alpha = -Infinity;
+        const beta = Infinity;
+        for (const move of sortedMoves) {
+          this.game.move(move.san);
+          const score = minimaxAlphaBeta(this.game, 1, alpha, beta, false, rootColor);
+          this.game.undo();
+
+          if (score > bestScore) {
+            bestScore = score;
+            bestMoves = [move];
+          } else if (score === bestScore) {
+            bestMoves.push(move);
+          }
+          if (score > alpha) {
+            alpha = score;
+          }
+        }
+        selectedMove = bestMoves[0];
+        break;
+      }
       case 'master': {
-        // Use simple eval to pick best move
-        const eval_ = this.getSimpleEvaluation();
-        const best = moves.find(m => m.san === eval_.bestMove);
-        selectedMove = best || moves[0];
+        // 3-ply minimax with alpha-beta search and piece-square tables
+        // Searches 3 plies ahead: engine move, opponent reply, engine follow-up
+        // Finds tactics, combinations, and mate in 2
+        let bestScore = -Infinity;
+        let bestMoves: Move[] = [];
+
+        const sortedMoves = [...moves].sort((a, b) => {
+          const scoreA = (a.captured ? PIECE_VALUES[a.captured] * 10 - PIECE_VALUES[a.piece] : 0) + (a.san.includes('+') ? 50 : 0);
+          const scoreB = (b.captured ? PIECE_VALUES[b.captured] * 10 - PIECE_VALUES[b.piece] : 0) + (b.san.includes('+') ? 50 : 0);
+          return scoreB - scoreA;
+        });
+
+        let alpha = -Infinity;
+        const beta = Infinity;
+        const movesToSearch = sortedMoves.length > 15 ? sortedMoves.slice(0, 15) : sortedMoves;
+        for (const move of movesToSearch) {
+          this.game.move(move.san);
+          const score = minimaxAlphaBeta(this.game, 2, alpha, beta, false, rootColor);
+          this.game.undo();
+
+          if (score > bestScore) {
+            bestScore = score;
+            bestMoves = [move];
+          } else if (score === bestScore) {
+            bestMoves.push(move);
+          }
+          if (score > alpha) {
+            alpha = score;
+          }
+        }
+        selectedMove = bestMoves[0];
         break;
       }
       default:
@@ -524,6 +1008,11 @@ export class ChessEngine {
   }
 
   private describeGameOver(): string {
+    if (this.isResigned && this.resignedColor) {
+      const resignedName = this.resignedColor === 'w' ? 'White' : 'Black';
+      const winnerName = this.resignedColor === 'w' ? 'Black' : 'White';
+      return `${resignedName} resigns. ${winnerName} wins by resignation.`;
+    }
     if (this.game.isCheckmate()) {
       const winner = this.game.turn() === 'w' ? 'Black' : 'White';
       return `Checkmate! ${winner} wins the game.`;
@@ -539,6 +1028,10 @@ export class ChessEngine {
     this.game = new Chess(fen);
     this.moveHistory = [];
     this.capturedPieces = { white: [], black: [] };
+    this.isResigned = false;
+    this.resignedColor = null;
+    this.pendingPremove = null;
+    this.pendingConfirmation = null;
   }
 
   // --- Undo ---
@@ -554,6 +1047,12 @@ export class ChessEngine {
       };
     }
     this.moveHistory.pop();
+    if (undone.captured) {
+      const capturingColor = undone.color === 'w' ? 'white' : 'black';
+      this.capturedPieces[capturingColor].pop();
+    }
+    this.isResigned = false;
+    this.resignedColor = null;
     return {
       success: true,
       move: undone,
