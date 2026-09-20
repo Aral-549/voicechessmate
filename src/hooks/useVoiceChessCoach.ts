@@ -371,6 +371,10 @@ export function useVoiceChessCoach(options?: VoiceChessCoachOptions) {
   }, [engine, coach, syncSnapshot, soundLastMove, addEntry, dispatchToolSideEffects]);
 
   useEffect(() => {
+    // Accumulates streaming tokens — we only commit to the transcript once
+    // speaking ends, not once per word/token.
+    const streamingTextRef = { current: "" };
+
     const unsubscribers = [
       engine.on("connecting", () => setStatus("connecting")),
       engine.on("connect-failed", () => setStatus("idle")),
@@ -386,27 +390,36 @@ export function useVoiceChessCoach(options?: VoiceChessCoachOptions) {
         setPartialText("");
         if (!text) return;
         addEntry("you", text);
-        // No TTS competes with this one — confirming what was heard is
-        // genuinely new information, so it's always announced, not gated
-        // behind the "announce captions" setting.
         announce(`You said: ${text}`);
         setStatus("thinking");
-        // Deliberately does NOT parse or apply the move. The agent decides what
-        // this speech means and calls apply_move itself; parsing here too would
-        // play every spoken move twice.
       }),
-      engine.on("agent-speaking-start", () => setStatus("speaking")),
+      engine.on("agent-speaking-start", () => {
+        streamingTextRef.current = "";
+        setStatus("speaking");
+      }),
       engine.on("agent-speaking-text", ({ text }) => {
+        if (!text) return;
+        // Update the live caption so it streams visually in real-time
         setCaption(text);
-        // BUG 11 fix: update lastCoachMessageRef so R key replays the real
-        // agent response, not stale local narration from tool handlers.
-        if (text) lastCoachMessageRef.current = text;
-        // Also surface the agent reply in the transcript panel so players
-        // can read what the coach said even if audio failed.
-        if (text) addEntry("coach", text);
+        // Accumulate into ref — do NOT call addEntry here (causes word-per-line spam)
+        streamingTextRef.current = text;
+        // Keep lastCoachMessageRef current so R key always replays latest
+        lastCoachMessageRef.current = text;
       }),
       engine.on("agent-speaking-end", () => {
         setStatus((s) => (s === "speaking" ? "idle" : s));
+        // Commit exactly ONE transcript entry for the whole utterance
+        const finalText = streamingTextRef.current;
+        if (finalText) {
+          // Only add if it's not a duplicate of what the tool handler already logged
+          // (tool handlers call addEntry("coach", narration) synchronously before speak())
+          setEntries((prev) => {
+            const last = prev[prev.length - 1];
+            if (last?.speaker === "coach" && last.text === finalText) return prev;
+            return [...prev, { id: nextId(), speaker: "coach" as const, text: finalText, timestamp: Date.now() }];
+          });
+        }
+        streamingTextRef.current = "";
       }),
       engine.on("error", ({ message }) => {
         const text = `Voice error: ${message}. Use the text box to play instead.`;

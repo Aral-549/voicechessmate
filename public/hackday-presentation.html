@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VoiceChessmate — HACKDAY 1.0</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #0a0a0f;
+    --surface: #13131a;
+    --border:  #2a2a3a;
+    --accent:  #6c8ebf;
+    --gold:    #f0c040;
+    --green:   #3ecf8e;
+    --red:     #f05060;
+    --text:    #e8e8f0;
+    --muted:   #6b6b80;
+  }
+
+  html, body { height: 100%; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); overflow: hidden; }
+
+  /* ── Slide engine ── */
+  .deck { width: 100vw; height: 100vh; position: relative; }
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    padding: 64px 80px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  .slide.active { opacity: 1; pointer-events: all; }
+
+  /* ── Navigation ── */
+  .nav {
+    position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 12px; z-index: 100;
+  }
+  .nav button {
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); padding: 10px 24px; border-radius: 100px;
+    font-family: inherit; font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .nav button:hover { border-color: var(--accent); color: var(--accent); }
+  .nav .dots { display: flex; gap: 8px; }
+  .nav .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--border); cursor: pointer; transition: background 0.2s;
+  }
+  .nav .dot.active { background: var(--accent); }
+
+  .slide-num {
+    position: fixed; top: 28px; right: 36px;
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    color: var(--muted); z-index: 100;
+  }
+
+  /* ── Common elements ── */
+  .tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(108,142,191,0.12); border: 1px solid rgba(108,142,191,0.3);
+    color: var(--accent); font-size: 12px; font-weight: 600;
+    padding: 4px 12px; border-radius: 100px; letter-spacing: 0.08em;
+    text-transform: uppercase; margin-bottom: 20px;
+  }
+  h1 { font-size: 56px; font-weight: 900; line-height: 1.1; letter-spacing: -0.03em; }
+  h2 { font-size: 38px; font-weight: 800; line-height: 1.2; letter-spacing: -0.02em; margin-bottom: 8px; }
+  h3 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  p  { font-size: 18px; line-height: 1.65; color: rgba(232,232,240,0.75); }
+  .accent { color: var(--accent); }
+  .gold   { color: var(--gold); }
+  .green  { color: var(--green); }
+  .red    { color: var(--red); }
+
+  /* ── Grid helpers ── */
+  .cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; width: 100%; }
+  .cols-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; width: 100%; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px 32px;
+  }
+  .card.accent-border { border-color: rgba(108,142,191,0.4); }
+  .card.gold-border   { border-color: rgba(240,192,64,0.4); }
+  .card.green-border  { border-color: rgba(62,207,142,0.4); }
+
+  /* ── Stat box ── */
+  .stat { text-align: center; }
+  .stat .num  { font-size: 52px; font-weight: 900; line-height: 1; letter-spacing: -0.03em; }
+  .stat .label{ font-size: 14px; color: var(--muted); margin-top: 6px; font-weight: 500; }
+
+  /* ── Problem "pain" list ── */
+  .pain-list { list-style: none; display: flex; flex-direction: column; gap: 16px; }
+  .pain-list li {
+    display: flex; align-items: flex-start; gap: 14px;
+    background: rgba(240,80,96,0.07); border: 1px solid rgba(240,80,96,0.2);
+    border-radius: 12px; padding: 18px 22px;
+    font-size: 16px; line-height: 1.55;
+  }
+  .pain-list li .icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── Tech stack pills ── */
+  .pills { display: flex; flex-wrap: wrap; gap: 10px; }
+  .pill {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 16px;
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    color: var(--text); font-weight: 600;
+  }
+
+  /* ── Timeline ── */
+  .timeline { display: flex; flex-direction: column; gap: 0; width: 100%; }
+  .tline-item { display: flex; gap: 20px; }
+  .tline-track { display: flex; flex-direction: column; align-items: center; }
+  .tline-dot {
+    width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+    background: var(--accent); margin-top: 4px;
+  }
+  .tline-dot.gold   { background: var(--gold); }
+  .tline-dot.green  { background: var(--green); }
+  .tline-line {
+    width: 2px; flex: 1; background: var(--border); margin: 4px 0;
+    min-height: 24px;
+  }
+  .tline-body { padding-bottom: 28px; }
+  .tline-body h3 { font-size: 17px; margin-bottom: 4px; }
+  .tline-body p  { font-size: 14px; }
+
+  /* ── Slide 1 — Title ── */
+  #s1 { text-align: center; }
+  #s1 h1 { font-size: 72px; margin-bottom: 16px; }
+  #s1 .sub { font-size: 22px; color: var(--muted); font-weight: 400; margin-bottom: 40px; }
+  .board-deco {
+    font-size: 72px; line-height: 1; letter-spacing: 4px;
+    margin-bottom: 32px; opacity: 0.6;
+  }
+
+  /* ── Code snippet ── */
+  .code {
+    background: #0d1117; border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px 24px; font-family: 'JetBrains Mono', monospace;
+    font-size: 15px; line-height: 1.8; color: #7ec8a0;
+    white-space: pre;
+  }
+
+  /* ── Business model ── */
+  .biz-tier {
+    display: flex; align-items: center; gap: 16px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px 24px; margin-bottom: 14px;
+  }
+  .biz-tier .badge {
+    font-size: 11px; font-weight: 700; padding: 4px 10px;
+    border-radius: 100px; letter-spacing: 0.06em; text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .badge.free    { background: rgba(62,207,142,0.15); color: var(--green); border: 1px solid rgba(62,207,142,0.3); }
+  .badge.pro     { background: rgba(240,192,64,0.15); color: var(--gold);  border: 1px solid rgba(240,192,64,0.3); }
+  .badge.partner { background: rgba(108,142,191,0.15); color: var(--accent); border: 1px solid rgba(108,142,191,0.3); }
+
+  /* ── Keyboard shortcut display ── */
+  kbd {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 2px 10px;
+    font-family: 'JetBrains Mono', monospace; font-size: 14px;
+    font-weight: 600;
+  }
+
+  /* noise bg texture */
+  .slide::before {
+    content: '';
+    position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 20% 50%, rgba(108,142,191,0.04) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(240,192,64,0.03) 0%, transparent 50%);
+  }
+</style>
+</head>
+<body>
+
+<div class="deck">
+
+  <!-- ═══════════════ SLIDE 1 — Title ═══════════════ -->
+  <div class="slide active" id="s1">
+    <div class="board-deco">♔ ♟ ♗ ♜ ♕ ♞</div>
+    <div class="tag">HACKDAY 1.0 · Team Submission</div>
+    <h1><span class="accent">Voice</span>Chessmate</h1>
+    <p class="sub">Play chess entirely through your voice.<br/>No screen. No mouse. No barriers.</p>
+    <div style="display:flex;gap:24px;margin-top:16px;">
+      <div class="pill">🎙️ AssemblyAI</div>
+      <div class="pill">♟️ chess.js</div>
+      <div class="pill">⚡ Next.js 16</div>
+      <div class="pill">🧪 337 Tests</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ SLIDE 2 — Problem ═══════════════ -->
+  <div class="slide" id="s2">
+    <div style="width:100%">
+      <div class="tag">01 · Problem Statement</div>
+      <h2>Chess is the world's most universal game.<br/><span class="red">But not for everyone.</span></h2>
+      <p style="margin-bottom:32px;">285 million people with visual impairments are effectively locked out of online chess.</p>
+      <ul class="pain-list">
+        <li>
+          <span class="icon">👁️</span>
+          <div><strong>Chess.com & Lichess require constant visual tracking.</strong><br/>
+          Timed games — Blitz, Bullet — are physically impossible without a real-time visual board.</div>
+        </li>
+        <li>
+          <span class="icon">🔊</span>
+          <div><strong>Screen readers read raw HTML tables cell by cell.</strong><br/>
+          6–10 second delay per move. One slow move and the clock flags. Game over.</div>
+        </li>
+        <li>
+          <span class="icon">🧠</span>
+          <div><strong>Zero tactical context.</strong><br/>
+          No awareness of threats, forks, pins, or checks. Just raw coordinate data.</div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══════════════ SLIDE 3 — Solution ═══════════════ -->
+  <div class="slide" id="s3">
+    <div style="width:100%">
+      <div class="tag">02 · Proposed Solution</div>
+      <h2>Say your move. Hear the response.<br/><span class="green">Play the whole game.</span></h2>
+      <div class="cols-2" style="margin-top:32px;">
+        <div>
+          <div class="code">You:   "Knight to f3"
+Coach: "Knight to f3. Good development.
+        I'll respond with pawn to c5.
+        Your move, White."</div>
+          <p style="margin-top:16px;font-size:15px;">Every interaction is natural spoken language — not commands, not codes. Just chess.</p>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="card accent-border">
+            <h3>🎙️ Hold <kbd>J</kbd> to speak</h3>
+            <p style="font-size:15px;">Push-to-talk. Say your move. Release. Done.</p>
+          </div>
+          <div class="card green-border">
+            <h3>🔊 Live captions + chess.com sounds</h3>
+            <p style="font-size:15px;">Streaming transcript. Wooden piece sounds. Check alerts. Win fanfares.</p>
+          </div>
+          <div class="card gold-border">
+            <h3>🤖 4 difficulty levels + blitz timer</h3>
+            <p style="font-size:15px;">Beginner to Master. Bullet, Blitz, Rapid, or casual.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ SLIDE 4 — Users ═══════════════ -->
+  <div class="slide" id="s4">
+    <div style="width:100%">
+      <div class="tag">03 · Target Users</div>
+      <h2>Built for accessibility.<br/><span class="accent">Useful for everyone.</span></h2>
+      <div class="cols-3" style="margin-top:36px;">
+        <div class="card accent-border" style="text-align:center;">
+          <div style="font-size:40px;margin-bottom:12px;">♿</div>
+          <h3>Blind & Low-Vision Players</h3>
+          <p style="font-size:15px;">285M people globally. The primary use case. Eyes-free chess from first move to checkmate.</p>
+          <div class="stat" style="margin-top:20px;">
+            <div class="num accent">285M</div>
+            <div class="label">potential users</div>
+          </div>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:40px;margin-bottom:12px;">🎓</div>
+          <h3>Chess Learners</h3>
+          <p style="font-size:15px;">Ask the coach anything mid-game. "What are my threats?" "Describe the board." Voice-first coaching.</p>
+          <div class="stat" style="margin-top:20px;">
+            <div class="num" style="color:var(--text);">600M</div>
+            <div class="label">chess players worldwide</div>
+          </div>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:40px;margin-bottom:12px;">🎧</div>
+          <h3>Hands-Free Players</h3>
+          <p style="font-size:15px;">Commuters, multitaskers, anyone who wants to play without a screen. Chess on the go.</p>
+          <div class="stat" style="margin-top:20px;">
+            <div class="num" style="color:var(--text);">~10M</div>
+            <div class="label">active mobile chess players</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ SLIDE 5 — Technical Approach ═══════════════ -->
+  <div class="slide" id="s5">
+    <div style="width:100%">
+      <div class="tag">04 · Technical Approach</div>
+      <h2>Solving the hard problems<br/><span class="accent">nobody else bothered with.</span></h2>
+      <div class="cols-2" style="margin-top:28px;">
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div class="card">
+            <h3>🎙️ AssemblyAI Voice Agent (WebSocket)</h3>
+            <p style="font-size:14px;">Real-time PCM16 audio streamed in 25ms chunks. The agent understands chess context and calls typed tools — <code style="color:var(--accent);">apply_move</code>, <code style="color:var(--accent);">describe_board</code>, <code style="color:var(--accent);">undo_move</code>.</p>
+          </div>
+          <div class="card">
+            <h3>🔈 Dual AudioContext (Linux fix)</h3>
+            <p style="font-size:14px;">Speaker context at native 48kHz (prevents PulseAudio muting). Mic capture at 24kHz (what AssemblyAI requires). One of the few apps that actually works on Linux.</p>
+          </div>
+          <div class="card">
+            <h3>♟️ chess.js + full ruleset</h3>
+            <p style="font-size:14px;">Legal move validation, en passant, castling, promotion, threefold repetition, 50-move rule — all of it. 337 tests covering adversarial edge cases.</p>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px;">
+            <p style="font-size:13px;color:var(--muted);margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">Audio Pipeline</p>
+            <div class="code" style="font-size:12px;padding:14px;">Mic (getUserMedia)
+ └─ AudioWorklet (24kHz)
+     └─ PCM16 → WebSocket → AssemblyAI
+         └─ reply.audio events
+             └─ AudioBufferSourceNode (48kHz)
+                 └─ 🔊 Speaker</div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            <div class="pill">Next.js 16</div>
+            <div class="pill">TypeScript strict</div>
+            <div class="pill">AssemblyAI</div>
+            <div class="pill">chess.js</div>
+            <div class="pill">Tailwind CSS</div>
+            <div class="pill">Vitest</div>
+            <div class="pill">Web Audio API</div>
+            <div class="pill">AudioWorklet</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ SLIDE 6 — Market ═══════════════ -->
+  <div class="slide" id="s6">
+    <div style="width:100%">
+      <div class="tag">05 · Market & Business Potential</div>
+      <h2>A real market.<br/><span class="gold">An underserved one.</span></h2>
+      <div class="cols-2" style="margin-top:28px;align-items:start;">
+        <div>
+          <div style="display:flex;gap:24px;margin-bottom:28px;">
+            <div class="stat">
+              <div class="num gold">$5.7B</div>
+              <div class="label">global chess market</div>
+            </div>
+            <div class="stat">
+              <div class="num green">285M</div>
+              <div class="label">VI individuals globally</div>
+            </div>
+          </div>
+
+          <div class="biz-tier">
+            <span class="badge free">Free</span>
+            <div>
+              <strong>Core voice gameplay</strong><br/>
+              <span style="font-size:14px;color:var(--muted);">Unlimited games, 4 difficulty levels, all hotkeys, full accessibility</span>
+            </div>
+          </div>
+          <div class="biz-tier">
+            <span class="badge pro">Pro · $8/mo</span>
+            <div>
+              <strong>Advanced coaching</strong><br/>
+              <span style="font-size:14px;color:var(--muted);">Position analysis, move explanations, opening library, game history</span>
+            </div>
+          </div>
+          <div class="biz-tier">
+            <span class="badge partner">Partner API</span>
+            <div>
+              <strong>Licensing to chess platforms</strong><br/>
+              <span style="font-size:14px;color:var(--muted);">Chess.com, Lichess, chess clubs, IBCA-affiliated organizations</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div class="card green-border">
+            <h3>🏆 Competitive Moat</h3>
+            <p style="font-size:15px;">No major chess platform has real voice-first play today. Chess.com's "accessibility" is a keyboard-navigable board — not voice. We're building the category.</p>
+          </div>
+          <div class="card accent-border">
+            <h3>🤝 Partnership Angle</h3>
+            <p style="font-size:15px;">IBCA (International Blind Chess Association) runs tournaments globally. A white-label version of VoiceChessmate becomes the official tournament client.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ SLIDE 7 — Scalability & Future ═══════════════ -->
+  <div class="slide" id="s7">
+    <div style="width:100%">
+      <div class="tag">06 · Scalability & Future</div>
+      <h2>Where we go<br/><span class="green">from here.</span></h2>
+      <div class="cols-2" style="margin-top:32px;align-items:start;">
+        <div class="timeline">
+          <div class="tline-item">
+            <div class="tline-track">
+              <div class="tline-dot accent-border" style="background:var(--accent)"></div>
+              <div class="tline-line"></div>
+            </div>
+            <div class="tline-body">
+              <h3>✅ Now — HACKDAY 1.0</h3>
+              <p style="font-size:14px;">Full voice gameplay · 4 difficulty levels · Blitz/Rapid/Bullet clocks · Chess.com sounds · Game over modal · 337 tests passing</p>
+            </div>
+          </div>
+          <div class="tline-item">
+            <div class="tline-track">
+              <div class="tline-dot gold" ></div>
+              <div class="tline-line"></div>
+            </div>
+            <div class="tline-body">
+              <h3 class="gold">Q4 2026 — Live Multiplayer</h3>
+              <p style="font-size:14px;">Voice chess rooms · Peer-to-peer matchmaking · Lichess & Chess.com rated game sync · Auditory clock countdowns</p>
+            </div>
+          </div>
+          <div class="tline-item">
+            <div class="tline-track">
+              <div class="tline-dot green"></div>
+            </div>
+            <div class="tline-body">
+              <h3 class="green">2027 — Hardware & Global</h3>
+              <p style="font-size:14px;">Bluetooth DGT board integration · Haptic feedback · 8 languages (IBCA phonetic engines for ES, FR, DE, HI, AR) · Mobile app</p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="tag" style="margin-bottom:16px;">07 · If We Had More Time</div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div class="card" style="padding:18px 22px;">
+              <h3 style="font-size:16px;">🎤 Voice-to-Voice Multiplayer</h3>
+              <p style="font-size:14px;">Two blind players in a real-time voice room — each hearing the other's moves and clock through VoiceChessmate.</p>
+            </div>
+            <div class="card" style="padding:18px 22px;">
+              <h3 style="font-size:16px;">📱 Haptic Move Feedback</h3>
+              <p style="font-size:14px;">Phone vibration patterns that encode the destination square — so the entire game is perceivable without audio at all.</p>
+            </div>
+            <div class="card" style="padding:18px 22px;">
+              <h3 style="font-size:16px;">🌍 IBCA Tournament Mode</h3>
+              <p style="font-size:14px;">Official adjudication, digital score sheets, arbiter dashboard — a full blind chess tournament platform.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /deck -->
+
+<!-- Navigation -->
+<div class="slide-num">
+  <span id="cur">1</span> / <span id="tot">7</span>
+</div>
+
+<div class="nav">
+  <button id="prev">← Prev</button>
+  <div class="dots" id="dots"></div>
+  <button id="next">Next →</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const dots   = document.getElementById('dots');
+  const cur    = document.getElementById('cur');
+  let idx = 0;
+
+  // Build dots
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => goTo(i);
+    dots.appendChild(d);
+  });
+
+  function goTo(n) {
+    slides[idx].classList.remove('active');
+    dots.children[idx].classList.remove('active');
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides[idx].classList.add('active');
+    dots.children[idx].classList.add('active');
+    cur.textContent = idx + 1;
+  }
+
+  document.getElementById('prev').onclick = () => goTo(idx - 1);
+  document.getElementById('next').onclick = () => goTo(idx + 1);
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); goTo(idx + 1); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')                    { e.preventDefault(); goTo(idx - 1); }
+  });
+</script>
+</body>
+</html>
