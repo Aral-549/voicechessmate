@@ -68,12 +68,20 @@ Audio from your mic flows into an `AudioWorklet` (25ms chunks), gets base64-enco
 
 ---
 
+## Presentations
+
+- 📊 **[HACKDAY 1.0 Pitch Deck (7-Slide PPTX)](./VoiceChessmate_HACKDAY_1.0.pptx)** — Adheres strictly to the 7-slide requirements (Problem, Solution, Users, Technical, Market, Scalability, If We Had More Time).
+- 📊 **[Hackdevengers 2.0 Deck (8-Slide PPTX)](./VoiceChessmate_Hackdevengers_2.0.pptx)** — In-depth architectural breakdown of AssemblyAI Voice Agent, dual AudioContext, and IBCA standards.
+- 🌐 **[Interactive Web Deck (HACKDAY 1.0)](./public/hackday-presentation.html)** · **[Interactive Web Deck (Hackdevengers)](./public/hackdevengers-presentation.html)**
+
+---
+
 ## Running locally
 
 **You'll need Node.js 18+ and an AssemblyAI API key.**
 
 ```bash
-git clone https://gitlab.com/Aral-5491/voicechessmate.git
+git clone https://github.com/Aral-549/voicechessmate.git
 cd voicechessmate
 npm install
 ```
